@@ -179,9 +179,10 @@ object JavaFXPlugin extends Plugin {
               </fx:resources>
               <fx:permissions elevated={ jfx.permissions.elevated.toString } cacheCertificates={ jfx.permissions.cacheCertificates.toString }/>
               {
-                templateFile map { tf =>
+                if (templateFile.isDefined) {
+                  val tf = templateFile.get
                   <fx:template file={ tf.getAbsolutePath } tofile={ templateDestFile map(_.getAbsolutePath) getOrElse tf.getAbsolutePath }/>
-                } getOrElse Unit
+                } 
               }
             </fx:deploy>
           </target>
