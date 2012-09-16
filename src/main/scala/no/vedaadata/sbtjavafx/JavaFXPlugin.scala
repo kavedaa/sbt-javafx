@@ -29,13 +29,11 @@ object JavaFXPlugin extends Plugin {
 
   //	Define the keys
 
-  private def dashed(a: String, b: String) = List(a, "-", b).mkString
-
   val jfx = SettingKey[JFX]("javafx", "All JavaFX settings.")
 
   object JFX {
 
-    private def prefixed(name: String) = dashed(jfx.key.label, name)
+    private def prefixed(name: String) = List(jfx.key.label, name) mkString "-"
 
     val sdkDir = SettingKey[String](prefixed("sdk-dir"), "Location of JavaFX SDK.")
 
@@ -47,48 +45,33 @@ object JavaFXPlugin extends Plugin {
 
     val output = SettingKey[Output](prefixed("output"), "JavaFX output settings.")
 
-    object Output {
-      private def prefixed(name: String) = dashed(output.key.label, name)
-      val artifactBaseName = SettingKey[(String, ModuleID, Artifact) => String](prefixed("artifact-base-name"), "Function that produces the JavaFX artifact name (without file extension) from its definition.")
-      val artifactBaseNameValue = SettingKey[String](prefixed("artifact-base-name-value"), "The actual name of the JavaFX artifact (without file extension).")
-      val deployDir = SettingKey[Option[String]](prefixed("deploy-dir"), "Directory the packaged application will be copied to when executing the 'deploy' task.")
-    }
+    val artifactBaseName = SettingKey[(String, ModuleID, Artifact) => String](prefixed("artifact-base-name"), "Function that produces the JavaFX artifact name (without file extension) from its definition.")
+    val artifactBaseNameValue = SettingKey[String](prefixed("artifact-base-name-value"), "The actual name of the JavaFX artifact (without file extension).")
+    val deployDir = SettingKey[Option[String]](prefixed("deploy-dir"), "Directory the packaged application will be copied to when executing the 'deploy' task.")
 
-    object Template {
-      private def prefixed(name: String) = dashed(template.key.label, name)
-      val file = SettingKey[Option[String]](prefixed("file"), "HTML template input file.")
-      val destFile = SettingKey[Option[String]](prefixed("dest-file"), "HTML template output file.")
-      val placeholderId = SettingKey[String](prefixed("placeholder-id"), "HTML template placeholder id.")
-    }
+    val file = SettingKey[Option[String]](prefixed("file"), "HTML template input file.")
+    val destFile = SettingKey[Option[String]](prefixed("dest-file"), "HTML template output file.")
+    val placeholderId = SettingKey[String](prefixed("placeholder-id"), "HTML template placeholder id.")
 
     val dimensions = SettingKey[Dimensions](prefixed("dimensions"), "JavaFX dimensions settings.")
 
-    object Dimensions {
-      private def prefixed(name: String) = dashed(dimensions.key.label, name)
-      val width = SettingKey[Int](prefixed("width"), "JavaFX application width.")
-      val height = SettingKey[Int](prefixed("height"), "JavaFX application height.")
-      val embeddedWidth = SettingKey[String](prefixed("embedded-width"), "JavaFX applet width.")
-      val embeddedHeight = SettingKey[String](prefixed("embedded-height"), "JavaFX applet height.")
-    }
+    val width = SettingKey[Int](prefixed("width"), "JavaFX application width.")
+    val height = SettingKey[Int](prefixed("height"), "JavaFX application height.")
+    val embeddedWidth = SettingKey[String](prefixed("embedded-width"), "JavaFX applet width.")
+    val embeddedHeight = SettingKey[String](prefixed("embedded-height"), "JavaFX applet height.")
 
     val permissions = SettingKey[Permissions](prefixed("permissions"), "JavaFX application permission settings.")
 
-    object Permissions {
-      private def prefixed(name: String) = dashed(permissions.key.label, name)
-      val elevated = SettingKey[Boolean](prefixed("elevated"), "Whether this JavaFX application requires elevated permissions.")
-      val cacheCertificates = SettingKey[Boolean](prefixed("cache-certificates"), "Whether the signing certificates should be cached in the deployment descriptor.")
-    }
+    val elevated = SettingKey[Boolean](prefixed("elevated"), "Whether this JavaFX application requires elevated permissions.")
+    val cacheCertificates = SettingKey[Boolean](prefixed("cache-certificates"), "Whether the signing certificates should be cached in the deployment descriptor.")
 
     val signing = SettingKey[Signing](prefixed("signing"), "Settings for JavaFX jar signing.")
 
-    object Signing {
-      private def prefixed(name: String) = dashed(signing.key.label, name)
-      val keyStore = SettingKey[Option[File]](prefixed("key-store"), "Filename for keystore for jar signing.")
-      val storePass = SettingKey[Option[String]](prefixed("store-pass"), "Password for keystore for jar signing.")
-      val alias = SettingKey[Option[String]](prefixed("alias"), "Key name for jar signing.")
-      val keyPass = SettingKey[Option[String]](prefixed("key-pass"), "Key password for jar signing.")
-      val storeType = SettingKey[Option[String]](prefixed("store-type"), "Keytype store for signing.")
-    }
+    val keyStore = SettingKey[Option[File]](prefixed("key-store"), "Filename for keystore for jar signing.")
+    val storePass = SettingKey[Option[String]](prefixed("store-pass"), "Password for keystore for jar signing.")
+    val alias = SettingKey[Option[String]](prefixed("alias"), "Key name for jar signing.")
+    val keyPass = SettingKey[Option[String]](prefixed("key-pass"), "Key password for jar signing.")
+    val storeType = SettingKey[Option[String]](prefixed("store-type"), "Keytype store for signing.")
 
     val packageJavaFx = TaskKey[Unit]("package-javafx", "Packages a JavaFX application.")
 
@@ -124,8 +107,8 @@ object JavaFXPlugin extends Plugin {
       val templateDestFile = jfx.template.destFile orElse jfx.template.file map { f =>
         if (file(f).isAbsolute) file(f)
         else (distDir / f)
-      }  
-      
+      }
+
       //	All library jars that should be packaged with the application
 
       val libJars = fullClasspath map (_.data) filter ClasspathUtilities.isArchive filterNot (_.getName endsWith "jfxrt.jar")
@@ -181,8 +164,8 @@ object JavaFXPlugin extends Plugin {
               {
                 if (templateFile.isDefined) {
                   val tf = templateFile.get
-                  <fx:template file={ tf.getAbsolutePath } tofile={ templateDestFile map(_.getAbsolutePath) getOrElse tf.getAbsolutePath }/>
-                } 
+                  <fx:template file={ tf.getAbsolutePath } tofile={ templateDestFile map (_.getAbsolutePath) getOrElse tf.getAbsolutePath }/>
+                }
               }
             </fx:deploy>
           </target>
@@ -222,38 +205,38 @@ object JavaFXPlugin extends Plugin {
 
   val jfxSettings: Seq[Setting[_]] = Seq(
     JFX.javaOnly := false,
-    JFX.output <<= (JFX.Output.artifactBaseName, JFX.Output.artifactBaseNameValue, JFX.Output.deployDir) apply Output.apply,
-    JFX.template <<= (JFX.Template.file, JFX.Template.destFile, JFX.Template.placeholderId) apply Template.apply,
-    JFX.dimensions <<= (JFX.Dimensions.width, JFX.Dimensions.height, JFX.Dimensions.embeddedWidth, JFX.Dimensions.embeddedHeight) apply Dimensions.apply,
-    JFX.permissions <<= (JFX.Permissions.elevated, JFX.Permissions.cacheCertificates) apply { Permissions(_, _) },
-    JFX.signing <<= (JFX.Signing.keyStore, JFX.Signing.storePass, JFX.Signing.alias, JFX.Signing.keyPass, JFX.Signing.storeType) apply Signing.apply)
+    JFX.output <<= (JFX.artifactBaseName, JFX.artifactBaseNameValue, JFX.deployDir) apply Output.apply,
+    JFX.template <<= (JFX.file, JFX.destFile, JFX.placeholderId) apply Template.apply,
+    JFX.dimensions <<= (JFX.width, JFX.height, JFX.embeddedWidth, JFX.embeddedHeight) apply Dimensions.apply,
+    JFX.permissions <<= (JFX.elevated, JFX.cacheCertificates) apply { Permissions(_, _) },
+    JFX.signing <<= (JFX.keyStore, JFX.storePass, JFX.alias, JFX.keyPass, JFX.storeType) apply Signing.apply)
 
   val outputSettings: Seq[Setting[_]] = Seq(
-    JFX.Output.artifactBaseName <<= crossPaths(p => (v, id, a) => List(Some(a.name), if (p) Some("_" + v) else None, Some("-" + id.revision)).flatten.mkString),
-    JFX.Output.artifactBaseNameValue <<= (scalaVersion, projectID, artifact, JFX.Output.artifactBaseName) apply { (v, id, a, f) => f(v, id, a) },
-    JFX.Output.deployDir := None)
+    JFX.artifactBaseName <<= crossPaths(p => (v, id, a) => List(Some(a.name), if (p) Some("_" + v) else None, Some("-" + id.revision)).flatten.mkString),
+    JFX.artifactBaseNameValue <<= (scalaVersion, projectID, artifact, JFX.artifactBaseName) apply { (v, id, a, f) => f(v, id, a) },
+    JFX.deployDir := None)
 
   val templateSettings: Seq[Setting[_]] = Seq(
-    JFX.Template.file := None,
-    JFX.Template.destFile := None,
-    JFX.Template.placeholderId := "javafx")
+    JFX.file := None,
+    JFX.destFile := None,
+    JFX.placeholderId := "javafx")
 
   val dimensionsSettings: Seq[Setting[_]] = Seq(
-    JFX.Dimensions.width := 800,
-    JFX.Dimensions.height := 600,
-    JFX.Dimensions.embeddedWidth := "100%",
-    JFX.Dimensions.embeddedHeight := "100%")
+    JFX.width := 800,
+    JFX.height := 600,
+    JFX.embeddedWidth := "100%",
+    JFX.embeddedHeight := "100%")
 
   val permissionsSettings: Seq[Setting[_]] = Seq(
-    JFX.Permissions.elevated := false,
-    JFX.Permissions.cacheCertificates := false)
+    JFX.elevated := false,
+    JFX.cacheCertificates := false)
 
   val signingSettings: Seq[Setting[_]] = Seq(
-    JFX.Signing.keyStore := None,
-    JFX.Signing.storePass := None,
-    JFX.Signing.alias := None,
-    JFX.Signing.keyPass := None,
-    JFX.Signing.storeType := None)
+    JFX.keyStore := None,
+    JFX.storePass := None,
+    JFX.alias := None,
+    JFX.keyPass := None,
+    JFX.storeType := None)
 
   override val settings = jfxSettings ++ outputSettings ++ templateSettings ++ dimensionsSettings ++ permissionsSettings ++ signingSettings ++ Seq(
     mainClass in (Compile, run) <<= (JFX.mainClass, JFX.javaOnly) map ((c, j) => if (j) Some(c) else Some(c + "Launcher")),

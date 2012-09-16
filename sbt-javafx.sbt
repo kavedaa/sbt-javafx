@@ -2,9 +2,11 @@ name := "sbt-javafx"
 
 organization := "no.vedaadata"
 
-version := "0.1-SNAPSHOT"
+version := "0.2-SNAPSHOT"
 
-scalaVersion := "2.9.1"
+scalaVersion := "2.9.2"
+
+crossScalaVersions := Seq("2.9.1", "2.9.2")
 
 sbtPlugin := true
 
