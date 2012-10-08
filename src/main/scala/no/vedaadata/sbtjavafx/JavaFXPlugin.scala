@@ -11,14 +11,13 @@ case class Template(file: Option[String], destFile: Option[String], placeholderI
 
 case class Permissions(elevated: Boolean, cacheCertificates: Boolean)
 
-case class Signing(keyStore: Option[File], storePass: Option[String], alias: Option[String], keyPass: Option[String], storeType: Option[String])
+case class Signing(keyStore: Option[File], storePass: Option[String], keyAlias: Option[String], keyPass: Option[String], storeType: Option[String])
 
 case class Dimensions(width: Int, height: Int, embeddedWidth: String, embeddedHeight: String)
 
 case class JFX(
-  sdkDir: String,
+  antLib: Option[String],
   mainClass: String,
-  javaOnly: Boolean,
   output: Output,
   template: Template,
   dimensions: Dimensions,
@@ -35,8 +34,16 @@ object JavaFXPlugin extends Plugin {
 
     private def prefixed(name: String) = List(jfx.key.label, name) mkString "-"
 
-    val sdkDir = SettingKey[String](prefixed("sdk-dir"), "Location of JavaFX SDK.")
+    val jdkDir = SettingKey[Option[String]](prefixed("jdk-dir"), "Location of the JDK.") 
+    
+    val sdkDir = SettingKey[Option[String]](prefixed("sdk-dir"), "Location of stand-alone JavaFX SDK.")
 
+    val jfxRt = SettingKey[Option[String]](prefixed("jfx-rt"), "Location of jfxrt.jar.")
+
+    val addJfxRtToClasspath = SettingKey[Boolean](prefixed("add-jfx-rt-to-classpath"), "Whether jfxrt.jar should be added to compile and runtime classpaths.")
+    
+    val antLib = SettingKey[Option[String]](prefixed("ant-lib"), "location of ant-javafx.jar.")
+    
     val mainClass = SettingKey[String](prefixed("main-class"), "Entry point for JavaFX application, must extend javafx.application.Application and implement the start() method.")
 
     val javaOnly = SettingKey[Boolean](prefixed("java-only"), "Convenience setting for JavaFX applications in pure Java, sets some other settings to usable defaults for this scenario.")
@@ -49,8 +56,8 @@ object JavaFXPlugin extends Plugin {
     val artifactBaseNameValue = SettingKey[String](prefixed("artifact-base-name-value"), "The actual name of the JavaFX artifact (without file extension).")
     val deployDir = SettingKey[Option[String]](prefixed("deploy-dir"), "Directory the packaged application will be copied to when executing the 'deploy' task.")
 
-    val file = SettingKey[Option[String]](prefixed("file"), "HTML template input file.")
-    val destFile = SettingKey[Option[String]](prefixed("dest-file"), "HTML template output file.")
+    val templatefile = SettingKey[Option[String]](prefixed("template-file"), "HTML template input file.")
+    val templateDestFile = SettingKey[Option[String]](prefixed("template-dest-file"), "HTML template output file.")
     val placeholderId = SettingKey[String](prefixed("placeholder-id"), "HTML template placeholder id.")
 
     val dimensions = SettingKey[Dimensions](prefixed("dimensions"), "JavaFX dimensions settings.")
@@ -69,13 +76,13 @@ object JavaFXPlugin extends Plugin {
 
     val keyStore = SettingKey[Option[File]](prefixed("key-store"), "Filename for keystore for jar signing.")
     val storePass = SettingKey[Option[String]](prefixed("store-pass"), "Password for keystore for jar signing.")
-    val alias = SettingKey[Option[String]](prefixed("alias"), "Key name for jar signing.")
+    val keyAlias = SettingKey[Option[String]](prefixed("alias"), "Key name for jar signing.")
     val keyPass = SettingKey[Option[String]](prefixed("key-pass"), "Key password for jar signing.")
-    val storeType = SettingKey[Option[String]](prefixed("store-type"), "Keytype store for signing.")
+    val storeType = SettingKey[Option[String]](prefixed("store-type"), "Keystore type for signing.")
 
     val packageJavaFx = TaskKey[Unit]("package-javafx", "Packages a JavaFX application.")
 
-    val deploy = TaskKey[Unit]("deploy", "Deploys a JavaFX application.")
+    val deploy = TaskKey[Unit]("deploy", "Copies a JavaFX application to a configurable directory.")
 
   }
 
@@ -121,7 +128,7 @@ object JavaFXPlugin extends Plugin {
 
       //	Check that the JavaFX Ant library is present
 
-      val antLib = jfx.sdkDir + "/lib/ant-javafx.jar"
+      val antLib = jfx.antLib getOrElse sys.error("Path to ant-javafx.jar is not defined.") 
 
       if (!file(antLib).exists) sys.error(antLib + " does not exists")
 
@@ -142,14 +149,14 @@ object JavaFXPlugin extends Plugin {
             </fx:jar>
             {
               if (jfx.permissions.elevated) {
-                <fx:signjar destdir={ distDir.getAbsolutePath } keyStore={ jfx.signing.keyStore map (_.getAbsolutePath) getOrElse sys.error("fx-key-store is not defined") } storePass={ jfx.signing.storePass getOrElse sys.error("fx-store-pass is not defined") } alias={ jfx.signing.alias getOrElse sys.error("fx-alias is not defined") } keyPass={ jfx.signing.keyPass getOrElse sys.error("fx-key-pass is not defined") } storeType={ jfx.signing.storeType getOrElse "jks" }>
+                <fx:signjar destdir={ distDir.getAbsolutePath } keyStore={ jfx.signing.keyStore map (_.getAbsolutePath) getOrElse sys.error("fx-key-store is not defined") } storePass={ jfx.signing.storePass getOrElse sys.error("fx-store-pass is not defined") } alias={ jfx.signing.keyAlias getOrElse sys.error("fx-alias is not defined") } keyPass={ jfx.signing.keyPass getOrElse sys.error("fx-key-pass is not defined") } storeType={ jfx.signing.storeType getOrElse "jks" }>
                   <fx:fileset dir={ distDir.getAbsolutePath }/>
                 </fx:signjar>
               }
             }
             {
               if (jfx.permissions.elevated && libJars.nonEmpty) {
-                <fx:signjar destdir={ libDir.getAbsolutePath } keyStore={ jfx.signing.keyStore map (_.getAbsolutePath) getOrElse sys.error("fx-key-store is not defined") } storePass={ jfx.signing.storePass getOrElse sys.error("fx-store-pass is not defined") } alias={ jfx.signing.alias getOrElse sys.error("fx-alias is not defined") } keyPass={ jfx.signing.keyPass getOrElse sys.error("fx-key-pass is not defined") } storeType={ jfx.signing.storeType getOrElse "jks" }>
+                <fx:signjar destdir={ libDir.getAbsolutePath } keyStore={ jfx.signing.keyStore map (_.getAbsolutePath) getOrElse sys.error("fx-key-store is not defined") } storePass={ jfx.signing.storePass getOrElse sys.error("fx-store-pass is not defined") } alias={ jfx.signing.keyAlias getOrElse sys.error("fx-alias is not defined") } keyPass={ jfx.signing.keyPass getOrElse sys.error("fx-key-pass is not defined") } storeType={ jfx.signing.storeType getOrElse "jks" }>
                   <fx:fileset dir={ libDir.getAbsolutePath }/>
                 </fx:signjar>
               }
@@ -201,15 +208,13 @@ object JavaFXPlugin extends Plugin {
 
   //	Define the settings
 
-  val jfxRt = JFX.sdkDir map (dir => file(dir + "/rt/lib/jfxrt.jar"))
-
   val jfxSettings: Seq[Setting[_]] = Seq(
     JFX.javaOnly := false,
     JFX.output <<= (JFX.artifactBaseName, JFX.artifactBaseNameValue, JFX.deployDir) apply Output.apply,
-    JFX.template <<= (JFX.file, JFX.destFile, JFX.placeholderId) apply Template.apply,
+    JFX.template <<= (JFX.templatefile, JFX.templateDestFile, JFX.placeholderId) apply Template.apply,
     JFX.dimensions <<= (JFX.width, JFX.height, JFX.embeddedWidth, JFX.embeddedHeight) apply Dimensions.apply,
     JFX.permissions <<= (JFX.elevated, JFX.cacheCertificates) apply { Permissions(_, _) },
-    JFX.signing <<= (JFX.keyStore, JFX.storePass, JFX.alias, JFX.keyPass, JFX.storeType) apply Signing.apply)
+    JFX.signing <<= (JFX.keyStore, JFX.storePass, JFX.keyAlias, JFX.keyPass, JFX.storeType) apply Signing.apply)
 
   val outputSettings: Seq[Setting[_]] = Seq(
     JFX.artifactBaseName <<= crossPaths(p => (v, id, a) => List(Some(a.name), if (p) Some("_" + v) else None, Some("-" + id.revision)).flatten.mkString),
@@ -217,8 +222,8 @@ object JavaFXPlugin extends Plugin {
     JFX.deployDir := None)
 
   val templateSettings: Seq[Setting[_]] = Seq(
-    JFX.file := None,
-    JFX.destFile := None,
+    JFX.templatefile := None,
+    JFX.templateDestFile := None,
     JFX.placeholderId := "javafx")
 
   val dimensionsSettings: Seq[Setting[_]] = Seq(
@@ -234,18 +239,23 @@ object JavaFXPlugin extends Plugin {
   val signingSettings: Seq[Setting[_]] = Seq(
     JFX.keyStore := None,
     JFX.storePass := None,
-    JFX.alias := None,
+    JFX.keyAlias := None,
     JFX.keyPass := None,
     JFX.storeType := None)
 
   override val settings = jfxSettings ++ outputSettings ++ templateSettings ++ dimensionsSettings ++ permissionsSettings ++ signingSettings ++ Seq(
+	JFX.jdkDir := None,
+	JFX.sdkDir := None,
+    JFX.jfxRt <<= (JFX.jdkDir, JFX.sdkDir) apply { (jdkDir, sdkDir) => jdkDir.map(_ + "/jre/lib/jfxrt.jar") orElse sdkDir.map(_ + "/rt/lib/jfxrt.jar") },  
+    JFX.addJfxRtToClasspath <<= JFX.jdkDir(!_.isDefined),
+    JFX.antLib <<= (JFX.jdkDir, JFX.sdkDir) apply { (jdkDir, sdkDir) => jdkDir.map(_ + "/lib/ant-javafx.jar") orElse sdkDir.map(_ + "/lib/ant-javafx.jar") },  
     mainClass in (Compile, run) <<= (JFX.mainClass, JFX.javaOnly) map ((c, j) => if (j) Some(c) else Some(c + "Launcher")),
-    (unmanagedClasspath in Compile) <+= jfxRt,
-    (unmanagedClasspath in Runtime) <+= jfxRt,
+    (unmanagedClasspath in Compile) <<= (unmanagedClasspath in Compile, JFX.addJfxRtToClasspath, JFX.jfxRt) map { (cp, add, jfxRt) => if (add) cp :+ Attributed.blank(file(jfxRt getOrElse sys.error("Path to jfxrt.jar is not defined."))) else cp },
+    (unmanagedClasspath in Runtime) <<= (unmanagedClasspath in Runtime, JFX.addJfxRtToClasspath, JFX.jfxRt) map { (cp, add, jfxRt) => if (add) cp :+ Attributed.blank(file(jfxRt getOrElse sys.error("Path to jfxrt.jar is not defined."))) else cp },
     autoScalaLibrary <<= JFX.javaOnly(x => !x),
     crossPaths <<= JFX.javaOnly(x => !x),
     fork in run := true,
-    jfx <<= (JFX.sdkDir, JFX.mainClass, JFX.javaOnly, JFX.output, JFX.template, JFX.dimensions, JFX.permissions, JFX.signing) apply { new JFX(_, _, _, _, _, _, _, _) },
+    jfx <<= (JFX.antLib, JFX.mainClass, JFX.output, JFX.template, JFX.dimensions, JFX.permissions, JFX.signing) apply { new JFX(_, _, _, _, _, _, _) },
     JFX.packageJavaFx <<= packageJavaFxTask,
     JFX.deploy <<= deployTask)
 }
