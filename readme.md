@@ -1,4 +1,4 @@
-== Getting
+## Getting
 
 For now, you'll have to clone the project from GitHub and run the SBT command `publish-local` on it. (Or `+ publish-local` for a cross build.)
 
@@ -9,7 +9,7 @@ addSbtPlugin("no.vedaadata" %% "sbt-javafx" % "0.2-SNAPSHOT")
 ```
 
 
-== Configuring paths to necessary JavaFX files
+## Configuring paths to necessary JavaFX files
 
 Two files from the JavaFX SDK are needed by the plugin:
 
@@ -18,7 +18,7 @@ Two files from the JavaFX SDK are needed by the plugin:
 
 The location of the these can be configured in several different ways:
 
-=== Using JDK 7u6 or higher
+### Using JDK 7u6 or higher
 
 The JDK from version 7u6 and higher has the JavaFX SDK included with it. Specify the path to the JDK root directory like this, e.g.:
 
@@ -36,7 +36,7 @@ JFX.addJfxRtToClasspath := true
 
 It is not necessary to add ant-javafx.jar to the classpath.
 
-=== Using a standalone JavaFX SDK
+### Using a standalone JavaFX SDK
 
 If you're using JDK 6 (which does not include JavaFX SDK), or for some other reason prefer to use the stand-alone JavaFX SDK, specify the path to the root directory like this, e.g.:
  
@@ -46,7 +46,7 @@ JFX.sdkDir := Some("C:/Program Files/Oracle/JavaFX 2.2 SDK")
 
 (Note that if you specify both jdkDir and sdkDir, jdkDir will be used.)
 
-=== Manual configuration
+### Manual configuration
 
 You can also specify the full paths to jfxrt.jar and ant-javafx.jar individually, e.g.:
 
