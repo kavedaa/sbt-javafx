@@ -34,16 +34,16 @@ object JavaFXPlugin extends Plugin {
 
     private def prefixed(name: String) = List(jfx.key.label, name) mkString "-"
 
-    val jdkDir = SettingKey[Option[String]](prefixed("jdk-dir"), "Location of the JDK.") 
-    
+    val jdkDir = SettingKey[Option[String]](prefixed("jdk-dir"), "Location of the JDK.")
+
     val sdkDir = SettingKey[Option[String]](prefixed("sdk-dir"), "Location of stand-alone JavaFX SDK.")
 
     val jfxRt = SettingKey[Option[String]](prefixed("jfx-rt"), "Location of jfxrt.jar.")
 
     val addJfxRtToClasspath = SettingKey[Boolean](prefixed("add-jfx-rt-to-classpath"), "Whether jfxrt.jar should be added to compile and runtime classpaths.")
-    
+
     val antLib = SettingKey[Option[String]](prefixed("ant-lib"), "location of ant-javafx.jar.")
-    
+
     val mainClass = SettingKey[String](prefixed("main-class"), "Entry point for JavaFX application, must extend javafx.application.Application and implement the start() method.")
 
     val javaOnly = SettingKey[Boolean](prefixed("java-only"), "Convenience setting for JavaFX applications in pure Java, sets some other settings to usable defaults for this scenario.")
@@ -128,9 +128,9 @@ object JavaFXPlugin extends Plugin {
 
       //	Check that the JavaFX Ant library is present
 
-      val antLib = jfx.antLib getOrElse sys.error("Path to ant-javafx.jar is not defined.") 
+      val antLib = jfx.antLib getOrElse sys.error("Path to ant-javafx.jar is not defined.")
 
-      if (!file(antLib).exists) sys.error(antLib + " does not exists")
+      if (!file(antLib).exists) sys.error(antLib + " does not exist.")
 
       //	Generate the Ant buildfile
 
@@ -139,13 +139,12 @@ object JavaFXPlugin extends Plugin {
           <target name="default">
             <taskdef resource="com/sun/javafx/tools/ant/antlib.xml" uri="javafx:com.sun.javafx.tools.ant" classpath={ antLib }/>
             <fx:application id="fxApp" name={ name } mainClass={ jfx.mainClass }/>
-            <fx:resources id="fxRes">
-              { if (libJars.nonEmpty) <fx:fileset dir={ libDir.getAbsolutePath }/> }
-            </fx:resources>
             <fx:jar destfile={ jarFile.getAbsolutePath }>
               <fx:application refid="fxApp"/>
               <fx:fileset dir={ classDir.getAbsolutePath }/>
-              <fx:resources refid="fxRes"/>
+              <fx:resources>
+                { if (libJars.nonEmpty) <fx:fileset dir={ crossTarget.getAbsolutePath } includes="lib/*.jar"/> }
+              </fx:resources>
             </fx:jar>
             {
               if (jfx.permissions.elevated) {
@@ -165,7 +164,7 @@ object JavaFXPlugin extends Plugin {
               <fx:application refid="fxApp"/>
               <fx:resources>
                 <fx:fileset dir={ distDir.getAbsolutePath } includes={ jfx.output.artifactBaseNameValue + ".jar" }/>
-                { if (libJars.nonEmpty) <fx:fileset dir={ libDir.getAbsolutePath }/> }
+                { if (libJars.nonEmpty) <fx:fileset dir={ crossTarget.getAbsolutePath } includes="lib/*.jar"/> }
               </fx:resources>
               <fx:permissions elevated={ jfx.permissions.elevated.toString } cacheCertificates={ jfx.permissions.cacheCertificates.toString }/>
               {
@@ -244,11 +243,11 @@ object JavaFXPlugin extends Plugin {
     JFX.storeType := None)
 
   override val settings = jfxSettings ++ outputSettings ++ templateSettings ++ dimensionsSettings ++ permissionsSettings ++ signingSettings ++ Seq(
-	JFX.jdkDir := None,
-	JFX.sdkDir := None,
-    JFX.jfxRt <<= (JFX.jdkDir, JFX.sdkDir) apply { (jdkDir, sdkDir) => jdkDir.map(_ + "/jre/lib/jfxrt.jar") orElse sdkDir.map(_ + "/rt/lib/jfxrt.jar") },  
+    JFX.jdkDir := None,
+    JFX.sdkDir := None,
+    JFX.jfxRt <<= (JFX.jdkDir, JFX.sdkDir) apply { (jdkDir, sdkDir) => jdkDir.map(_ + "/jre/lib/jfxrt.jar") orElse sdkDir.map(_ + "/rt/lib/jfxrt.jar") },
     JFX.addJfxRtToClasspath <<= JFX.jdkDir(!_.isDefined),
-    JFX.antLib <<= (JFX.jdkDir, JFX.sdkDir) apply { (jdkDir, sdkDir) => jdkDir.map(_ + "/lib/ant-javafx.jar") orElse sdkDir.map(_ + "/lib/ant-javafx.jar") },  
+    JFX.antLib <<= (JFX.jdkDir, JFX.sdkDir) apply { (jdkDir, sdkDir) => jdkDir.map(_ + "/lib/ant-javafx.jar") orElse sdkDir.map(_ + "/lib/ant-javafx.jar") },
     mainClass in (Compile, run) <<= (JFX.mainClass, JFX.javaOnly) map ((c, j) => if (j) Some(c) else Some(c + "Launcher")),
     (unmanagedClasspath in Compile) <<= (unmanagedClasspath in Compile, JFX.addJfxRtToClasspath, JFX.jfxRt) map { (cp, add, jfxRt) => if (add) cp :+ Attributed.blank(file(jfxRt getOrElse sys.error("Path to jfxrt.jar is not defined."))) else cp },
     (unmanagedClasspath in Runtime) <<= (unmanagedClasspath in Runtime, JFX.addJfxRtToClasspath, JFX.jfxRt) map { (cp, add, jfxRt) => if (add) cp :+ Attributed.blank(file(jfxRt getOrElse sys.error("Path to jfxrt.jar is not defined."))) else cp },
