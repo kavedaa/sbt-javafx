@@ -18,6 +18,7 @@ case class Dimensions(width: Int, height: Int, embeddedWidth: String, embeddedHe
 case class JFX(
   antLib: Option[String],
   mainClass: String,
+  nativeBundles: String,
   output: Output,
   template: Template,
   dimensions: Dimensions,
@@ -45,6 +46,8 @@ object JavaFXPlugin extends Plugin {
     val antLib = SettingKey[Option[String]](prefixed("ant-lib"), "location of ant-javafx.jar.")
     
     val mainClass = SettingKey[String](prefixed("main-class"), "Entry point for JavaFX application, must extend javafx.application.Application and implement the start() method.")
+
+    val nativeBundles = SettingKey[String](prefixed("native-bundles"), "Same as nativeBundles attribute for JavaFx <fx:deploy> Ant task.")
 
     val javaOnly = SettingKey[Boolean](prefixed("java-only"), "Convenience setting for JavaFX applications in pure Java, sets some other settings to usable defaults for this scenario.")
 
@@ -161,7 +164,7 @@ object JavaFXPlugin extends Plugin {
                 </fx:signjar>
               }
             }
-            <fx:deploy width={ jfx.dimensions.width.toString } height={ jfx.dimensions.height.toString } embeddedWidth={ jfx.dimensions.embeddedWidth } embeddedHeight={ jfx.dimensions.embeddedHeight } outdir={ distDir.getAbsolutePath } outfile={ jfx.output.artifactBaseNameValue } placeholderId={ jfx.template.placeholderId }>
+            <fx:deploy width={ jfx.dimensions.width.toString } height={ jfx.dimensions.height.toString } embeddedWidth={ jfx.dimensions.embeddedWidth } embeddedHeight={ jfx.dimensions.embeddedHeight } outdir={ distDir.getAbsolutePath } outfile={ jfx.output.artifactBaseNameValue } placeholderId={ jfx.template.placeholderId } nativeBundles={ jfx.nativeBundles }>
               <fx:application refid="fxApp"/>
               <fx:resources>
                 <fx:fileset dir={ distDir.getAbsolutePath } includes={ jfx.output.artifactBaseNameValue + ".jar" }/>
@@ -210,6 +213,7 @@ object JavaFXPlugin extends Plugin {
 
   val jfxSettings: Seq[Setting[_]] = Seq(
     JFX.javaOnly := false,
+
     JFX.output <<= (JFX.artifactBaseName, JFX.artifactBaseNameValue, JFX.deployDir) apply Output.apply,
     JFX.template <<= (JFX.templatefile, JFX.templateDestFile, JFX.placeholderId) apply Template.apply,
     JFX.dimensions <<= (JFX.width, JFX.height, JFX.embeddedWidth, JFX.embeddedHeight) apply Dimensions.apply,
@@ -255,7 +259,7 @@ object JavaFXPlugin extends Plugin {
     autoScalaLibrary <<= JFX.javaOnly(x => !x),
     crossPaths <<= JFX.javaOnly(x => !x),
     fork in run := true,
-    jfx <<= (JFX.antLib, JFX.mainClass, JFX.output, JFX.template, JFX.dimensions, JFX.permissions, JFX.signing) apply { new JFX(_, _, _, _, _, _, _) },
+    jfx <<= (JFX.antLib, JFX.mainClass, JFX.nativeBundles, JFX.output, JFX.template, JFX.dimensions, JFX.permissions, JFX.signing) apply { new JFX(_, _, _, _, _, _, _, _) },
     JFX.packageJavaFx <<= packageJavaFxTask,
     JFX.deploy <<= deployTask)
 }
