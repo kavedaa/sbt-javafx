@@ -243,7 +243,7 @@ object JavaFXPlugin extends Plugin {
     JFX.keyPass := None,
     JFX.storeType := None)
 
-  override val settings = jfxSettings ++ outputSettings ++ templateSettings ++ dimensionsSettings ++ permissionsSettings ++ signingSettings ++ Seq(
+  val allSettings = jfxSettings ++ outputSettings ++ templateSettings ++ dimensionsSettings ++ permissionsSettings ++ signingSettings ++ Seq(
 	JFX.jdkDir := None,
 	JFX.sdkDir := None,
     JFX.jfxRt <<= (JFX.jdkDir, JFX.sdkDir) apply { (jdkDir, sdkDir) => jdkDir.map(_ + "/jre/lib/jfxrt.jar") orElse sdkDir.map(_ + "/rt/lib/jfxrt.jar") },  
