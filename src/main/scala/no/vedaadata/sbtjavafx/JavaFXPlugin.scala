@@ -11,7 +11,7 @@ case class Template(file: Option[String], destFile: Option[String], placeholderI
 
 case class Permissions(elevated: Boolean, cacheCertificates: Boolean)
 
-case class Signing(keyStore: Option[File], storePass: Option[String], keyAlias: Option[String], keyPass: Option[String], storeType: Option[String])
+case class Signing(keyStore: Option[File], storePass: Option[String], alias: Option[String], keyPass: Option[String], storeType: Option[String])
 
 case class Dimensions(width: Int, height: Int, embeddedWidth: String, embeddedHeight: String)
 
@@ -74,11 +74,11 @@ object JavaFXPlugin extends Plugin {
 
     val signing = SettingKey[Signing](prefixed("signing"), "Settings for JavaFX jar signing.")
 
-    val keyStore = SettingKey[Option[File]](prefixed("key-store"), "Filename for keystore for jar signing.")
-    val storePass = SettingKey[Option[String]](prefixed("store-pass"), "Password for keystore for jar signing.")
-    val keyAlias = SettingKey[Option[String]](prefixed("alias"), "Key name for jar signing.")
-    val keyPass = SettingKey[Option[String]](prefixed("key-pass"), "Key password for jar signing.")
-    val storeType = SettingKey[Option[String]](prefixed("store-type"), "Keystore type for signing.")
+    val keyStore = SettingKey[Option[File]](prefixed("keystore"), "Filename for keystore for jar signing.")
+    val storePass = SettingKey[Option[String]](prefixed("storepass"), "Password for keystore for jar signing.")
+    val alias = SettingKey[Option[String]](prefixed("alias"), "Key name for jar signing.")
+    val keyPass = SettingKey[Option[String]](prefixed("keypass"), "Key password for jar signing.")
+    val storeType = SettingKey[Option[String]](prefixed("storetype"), "Keystore type for signing.")
 
     val packageJavaFx = TaskKey[Unit]("package-javafx", "Packages a JavaFX application.")
 
@@ -148,14 +148,14 @@ object JavaFXPlugin extends Plugin {
             </fx:jar>
             {
               if (jfx.permissions.elevated) {
-                <fx:signjar destdir={ distDir.getAbsolutePath } keyStore={ jfx.signing.keyStore map (_.getAbsolutePath) getOrElse sys.error("fx-key-store is not defined") } storePass={ jfx.signing.storePass getOrElse sys.error("fx-store-pass is not defined") } alias={ jfx.signing.keyAlias getOrElse sys.error("fx-alias is not defined") } keyPass={ jfx.signing.keyPass getOrElse sys.error("fx-key-pass is not defined") } storeType={ jfx.signing.storeType getOrElse "jks" }>
+                <fx:signjar destdir={ distDir.getAbsolutePath } keyStore={ jfx.signing.keyStore map (_.getAbsolutePath) getOrElse sys.error("fx-key-store is not defined") } storePass={ jfx.signing.storePass getOrElse sys.error("fx-store-pass is not defined") } alias={ jfx.signing.alias getOrElse sys.error("fx-alias is not defined") } keyPass={ jfx.signing.keyPass getOrElse sys.error("fx-key-pass is not defined") } storeType={ jfx.signing.storeType getOrElse "jks" }>
                   <fx:fileset dir={ distDir.getAbsolutePath }/>
                 </fx:signjar>
               }
             }
             {
               if (jfx.permissions.elevated && libJars.nonEmpty) {
-                <fx:signjar destdir={ libDir.getAbsolutePath } keyStore={ jfx.signing.keyStore map (_.getAbsolutePath) getOrElse sys.error("fx-key-store is not defined") } storePass={ jfx.signing.storePass getOrElse sys.error("fx-store-pass is not defined") } alias={ jfx.signing.keyAlias getOrElse sys.error("fx-alias is not defined") } keyPass={ jfx.signing.keyPass getOrElse sys.error("fx-key-pass is not defined") } storeType={ jfx.signing.storeType getOrElse "jks" }>
+                <fx:signjar destdir={ libDir.getAbsolutePath } keyStore={ jfx.signing.keyStore map (_.getAbsolutePath) getOrElse sys.error("fx-key-store is not defined") } storePass={ jfx.signing.storePass getOrElse sys.error("fx-store-pass is not defined") } alias={ jfx.signing.alias getOrElse sys.error("fx-alias is not defined") } keyPass={ jfx.signing.keyPass getOrElse sys.error("fx-key-pass is not defined") } storeType={ jfx.signing.storeType getOrElse "jks" }>
                   <fx:fileset dir={ libDir.getAbsolutePath }/>
                 </fx:signjar>
               }
@@ -232,10 +232,10 @@ object JavaFXPlugin extends Plugin {
     JFX.permissions <<= (JFX.elevated, JFX.cacheCertificates) apply { Permissions(_, _) },
     JFX.keyStore := None,
     JFX.storePass := None,
-    JFX.keyAlias := None,
+    JFX.alias := None,
     JFX.keyPass := None,
     JFX.storeType := None,
-    JFX.signing <<= (JFX.keyStore, JFX.storePass, JFX.keyAlias, JFX.keyPass, JFX.storeType) apply Signing.apply,
+    JFX.signing <<= (JFX.keyStore, JFX.storePass, JFX.alias, JFX.keyPass, JFX.storeType) apply Signing.apply,
     mainClass in (Compile, run) <<= (JFX.mainClass, JFX.javaOnly) map ((c, j) => if (j) Some(c) else Some(c + "Launcher")),
     (unmanagedClasspath in Compile) <<= (unmanagedClasspath in Compile, JFX.addJfxRtToClasspath, JFX.jfxRt) map { (cp, add, jfxRt) => if (add) cp :+ Attributed.blank(file(jfxRt getOrElse sys.error("Path to jfxrt.jar is not defined."))) else cp },
     (unmanagedClasspath in Runtime) <<= (unmanagedClasspath in Runtime, JFX.addJfxRtToClasspath, JFX.jfxRt) map { (cp, add, jfxRt) => if (add) cp :+ Attributed.blank(file(jfxRt getOrElse sys.error("Path to jfxrt.jar is not defined."))) else cp },
