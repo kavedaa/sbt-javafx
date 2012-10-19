@@ -88,8 +88,14 @@ object JavaFXPlugin extends Plugin {
 
   //	Define the packaging task
 
-  val packageJavaFxTask = (name, classDirectory in Compile, fullClasspath in Runtime, baseDirectory, crossTarget, jfx) map {
-    (name, classDir, fullClasspath, baseDirectory, crossTarget, jfx) =>
+  val packageJavaFxTask = (jfx, name, classDirectory in Compile, fullClasspath in Runtime, baseDirectory, crossTarget) map {
+    (jfx, name, classDir, fullClasspath, baseDirectory, crossTarget) =>
+
+      //	Check that the JavaFX Ant library is present
+
+      val antLib = jfx.antLib getOrElse sys.error("Path to ant-javafx.jar is not defined.")
+
+      if (!file(antLib).exists) sys.error(antLib + " does not exist.")
 
       //	Setup paths and delete anything left over from previous build
 
@@ -125,12 +131,6 @@ object JavaFXPlugin extends Plugin {
       val srcToDest = libJars map (src => (src, libDir / src.getName))
 
       copy(srcToDest)
-
-      //	Check that the JavaFX Ant library is present
-
-      val antLib = jfx.antLib getOrElse sys.error("Path to ant-javafx.jar is not defined.")
-
-      if (!file(antLib).exists) sys.error(antLib + " does not exist.")
 
       //	Generate the Ant buildfile
 
@@ -207,47 +207,35 @@ object JavaFXPlugin extends Plugin {
 
   //	Define the settings
 
-  val jfxSettings: Seq[Setting[_]] = Seq(
-    JFX.javaOnly := false,
-    JFX.output <<= (JFX.artifactBaseName, JFX.artifactBaseNameValue, JFX.deployDir) apply Output.apply,
-    JFX.template <<= (JFX.templatefile, JFX.templateDestFile, JFX.placeholderId) apply Template.apply,
-    JFX.dimensions <<= (JFX.width, JFX.height, JFX.embeddedWidth, JFX.embeddedHeight) apply Dimensions.apply,
-    JFX.permissions <<= (JFX.elevated, JFX.cacheCertificates) apply { Permissions(_, _) },
-    JFX.signing <<= (JFX.keyStore, JFX.storePass, JFX.keyAlias, JFX.keyPass, JFX.storeType) apply Signing.apply)
-
-  val outputSettings: Seq[Setting[_]] = Seq(
-    JFX.artifactBaseName <<= crossPaths(p => (v, id, a) => List(Some(a.name), if (p) Some("_" + v) else None, Some("-" + id.revision)).flatten.mkString),
-    JFX.artifactBaseNameValue <<= (scalaVersion, projectID, artifact, JFX.artifactBaseName) apply { (v, id, a, f) => f(v, id, a) },
-    JFX.deployDir := None)
-
-  val templateSettings: Seq[Setting[_]] = Seq(
-    JFX.templatefile := None,
-    JFX.templateDestFile := None,
-    JFX.placeholderId := "javafx")
-
-  val dimensionsSettings: Seq[Setting[_]] = Seq(
-    JFX.width := 800,
-    JFX.height := 600,
-    JFX.embeddedWidth := "100%",
-    JFX.embeddedHeight := "100%")
-
-  val permissionsSettings: Seq[Setting[_]] = Seq(
-    JFX.elevated := false,
-    JFX.cacheCertificates := false)
-
-  val signingSettings: Seq[Setting[_]] = Seq(
-    JFX.keyStore := None,
-    JFX.storePass := None,
-    JFX.keyAlias := None,
-    JFX.keyPass := None,
-    JFX.storeType := None)
-
-  override val settings = jfxSettings ++ outputSettings ++ templateSettings ++ dimensionsSettings ++ permissionsSettings ++ signingSettings ++ Seq(
+  val jfxSettings = Seq(
     JFX.jdkDir := None,
     JFX.sdkDir := None,
     JFX.jfxRt <<= (JFX.jdkDir, JFX.sdkDir) apply { (jdkDir, sdkDir) => jdkDir.map(_ + "/jre/lib/jfxrt.jar") orElse sdkDir.map(_ + "/rt/lib/jfxrt.jar") },
     JFX.addJfxRtToClasspath <<= JFX.jdkDir(!_.isDefined),
     JFX.antLib <<= (JFX.jdkDir, JFX.sdkDir) apply { (jdkDir, sdkDir) => jdkDir.map(_ + "/lib/ant-javafx.jar") orElse sdkDir.map(_ + "/lib/ant-javafx.jar") },
+    JFX.javaOnly := false,
+    JFX.artifactBaseName <<= crossPaths(p => (v, id, a) => List(Some(a.name), if (p) Some("_" + v) else None, Some("-" + id.revision)).flatten.mkString),
+    JFX.artifactBaseNameValue <<= (scalaVersion, projectID, artifact, JFX.artifactBaseName) apply { (v, id, a, f) => f(v, id, a) },
+    JFX.deployDir := None,
+    JFX.output <<= (JFX.artifactBaseName, JFX.artifactBaseNameValue, JFX.deployDir) apply Output.apply,
+    JFX.templatefile := None,
+    JFX.templateDestFile := None,
+    JFX.placeholderId := "javafx",
+    JFX.template <<= (JFX.templatefile, JFX.templateDestFile, JFX.placeholderId) apply Template.apply,
+    JFX.width := 800,
+    JFX.height := 600,
+    JFX.embeddedWidth := "100%",
+    JFX.embeddedHeight := "100%",
+    JFX.dimensions <<= (JFX.width, JFX.height, JFX.embeddedWidth, JFX.embeddedHeight) apply Dimensions.apply,
+    JFX.elevated := false,
+    JFX.cacheCertificates := false,
+    JFX.permissions <<= (JFX.elevated, JFX.cacheCertificates) apply { Permissions(_, _) },
+    JFX.keyStore := None,
+    JFX.storePass := None,
+    JFX.keyAlias := None,
+    JFX.keyPass := None,
+    JFX.storeType := None,
+    JFX.signing <<= (JFX.keyStore, JFX.storePass, JFX.keyAlias, JFX.keyPass, JFX.storeType) apply Signing.apply,
     mainClass in (Compile, run) <<= (JFX.mainClass, JFX.javaOnly) map ((c, j) => if (j) Some(c) else Some(c + "Launcher")),
     (unmanagedClasspath in Compile) <<= (unmanagedClasspath in Compile, JFX.addJfxRtToClasspath, JFX.jfxRt) map { (cp, add, jfxRt) => if (add) cp :+ Attributed.blank(file(jfxRt getOrElse sys.error("Path to jfxrt.jar is not defined."))) else cp },
     (unmanagedClasspath in Runtime) <<= (unmanagedClasspath in Runtime, JFX.addJfxRtToClasspath, JFX.jfxRt) map { (cp, add, jfxRt) => if (add) cp :+ Attributed.blank(file(jfxRt getOrElse sys.error("Path to jfxrt.jar is not defined."))) else cp },
@@ -257,4 +245,9 @@ object JavaFXPlugin extends Plugin {
     jfx <<= (JFX.antLib, JFX.mainClass, JFX.output, JFX.template, JFX.dimensions, JFX.permissions, JFX.signing) apply { new JFX(_, _, _, _, _, _, _) },
     JFX.packageJavaFx <<= packageJavaFxTask,
     JFX.deploy <<= deployTask)
+
+  def enableJFX = {
+    println("JavaFX support enabled.")
+    seq(jfxSettings: _*)
+  }
 }
