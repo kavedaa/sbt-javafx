@@ -16,14 +16,16 @@ addSbtPlugin("no.vedaadata" %% "sbt-javafx" % "0.35-SNAPSHOT")
 
 (Make sure to check the latest version number in case I forget to update the documentation.)
 
-A minimal `.sbt` build file could look like this:
+A minimal `.sbt` build file (e.g. `build.sbt`) could look like this:
 
 ```scala
 name := "my-javafx-application"
 
+version := "1.0"
+
 jfxSettings
 
-JFX.mainClass := "my.pack.MyApplication"
+JFX.mainClass := "mypackage.MyJavaFXApplication"
 
 JFX.devKit := JFX.jdk("C:/Program Files/Java/jdk1.7.0_07")
 
@@ -103,3 +105,76 @@ JFX.antLib := "C:/Program Files/Java/jdk1.7.0_07/lib/ant-javafx.jar"
 (These will take precedence over corresponding paths possibly calculated from specified JDK or SDK directory.)
 
 *Tip:* SBT does not limit you to use only a single .sbt build settings file for your project. Instead, it combines the settings from all .sbt files in your project's root directory. It is a good idea to keep the path configuration settings in a seperate file than the main build file and exclude this file from version control, especially when you're collaborating with others on the project or for other reasons compiling it on several different machines where the paths may not be the same. 
+
+## Packaging
+
+A JavaFX application must have a main class that extends from `javafx.application.Application`, e.g.:
+
+```scala
+class MyJavaFXApplication extends Application {
+
+	//	application here
+}
+```
+
+The name of this class must be configured like this:
+
+```scala
+JFX.mainClass := "mypackage.MyJavaFXApplication"
+```
+
+Execute the `package-javafx` task to package the application.
+
+The packaged application will reside inside `target/<scala-version>/<artifact-name>/`, e.g. `target/scala_2.9.2/my-javafx-application_2.9.2-1.0/`. (It is possible to customize the name of the directory.)
+
+The application will be identical to one packaged with JavaFX's Ant tools, e.g. by using the Netbeans IDE. It will contains, at least, a `.jar` fil, a `.jnlp` file, an `.html` file, as well as a `lib/` directory with all library jars added via any of SBT's library management methods, including the standard Scala library.
+
+### Java-only applications
+
+It is very much possible to use the plugin to package applications written in Java. If your application uses no Scala code at all, you might want to use the `javaOnly` setting:
+
+```scala
+JFX.javaOnly := true
+```
+
+This is a convenience setting that excludes the standard Scala library from being packed with the application, and makes the output path a bit simpler, so that it becomes e.g. `target/my-javafx-application-1.0/`.
+
+## Running from within SBT
+
+SBT is not able to launch a `javafx.application.Application` on its own. It needs a class with a static `main` method for its `run` task, which name must be configured in the `mainClass` setting (which is distinct from `JFX.mainClass`).
+
+By default, the plugin will set SBT's `mainClass` to the same value as `JFX.mainClass`. This makes it simple to add the necessary launcher code.
+
+### Scala-based applications
+
+You can use a companion object with a `main` method that has code to launch the JavaFX application, e.g.:
+
+```scala
+object MyJavaFXApplication {
+  def main(args: Array[String]) {
+    Application launch(classOf[MyJavaFXApplication], args: _*)
+  }
+}
+```
+ 
+If you for some reason would want to name this differently, you can override SBT's `mainClass` like this, e.g.:
+
+```scala
+mainClass in (Compile, run) := Some("some.other.Launcher")
+```
+
+### Java-based applications
+
+You can add a static `main` method to your JavaFX application class, e.g.:
+
+
+```java
+public class MyJavaFXApplication extends Application {
+
+	public static void main(String[] args) {
+		Application.launch(args);
+	}
+	
+	// rest of application here
+}
+```

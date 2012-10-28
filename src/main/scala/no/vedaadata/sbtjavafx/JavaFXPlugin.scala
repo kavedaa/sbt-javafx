@@ -5,7 +5,6 @@ import Keys._
 import classpath.ClasspathUtilities
 import org.apache.tools.ant
 
-
 //	Types and utils used for jdk/sdk configuration
 
 sealed trait DevKit
@@ -23,7 +22,6 @@ object DevKit {
   }
   def isJdk(devKit: DevKit) = devKit.isInstanceOf[JDK]
 }
-
 
 //	Wrapper classes for grouping the settings, since there's a lot of them
 
@@ -47,7 +45,6 @@ case class Permissions(elevated: Boolean, cacheCertificates: Boolean)
 case class Signing(keyStore: Option[File], storePass: Option[String], alias: Option[String], keyPass: Option[String], storeType: Option[String])
 
 case class Dimensions(width: Int, height: Int, embeddedWidth: String, embeddedHeight: String)
-
 
 //	The plugin
 
@@ -75,15 +72,15 @@ object JavaFXPlugin extends Plugin {
 
     val javaOnly = SettingKey[Boolean](prefixed("java-only"), "Convenience setting for JavaFX applications in pure Java, sets some other settings to usable defaults for this scenario.")
 
-    val template = SettingKey[Template](prefixed("template"), "JavaFX HTML template settings.")
-
     val output = SettingKey[Output](prefixed("output"), "JavaFX output settings.")
 
     val artifactBaseName = SettingKey[(String, ModuleID, Artifact) => String](prefixed("artifact-base-name"), "Function that produces the JavaFX artifact name (without file extension) from its definition.")
     val artifactBaseNameValue = SettingKey[String](prefixed("artifact-base-name-value"), "The actual name of the JavaFX artifact (without file extension).")
     val deployDir = SettingKey[Option[String]](prefixed("deploy-dir"), "Directory the packaged application will be copied to when executing the 'deploy' task.")
 
-    val templatefile = SettingKey[Option[String]](prefixed("template-file"), "HTML template input file.")
+    val template = SettingKey[Template](prefixed("template"), "JavaFX HTML template settings.")
+
+    val templateFile = SettingKey[Option[String]](prefixed("template-file"), "HTML template input file.")
     val templateDestFile = SettingKey[Option[String]](prefixed("template-dest-file"), "HTML template output file.")
     val placeholderId = SettingKey[String](prefixed("placeholder-id"), "HTML template placeholder id.")
 
@@ -249,10 +246,10 @@ object JavaFXPlugin extends Plugin {
     JFX.artifactBaseNameValue <<= (scalaVersion, projectID, artifact, JFX.artifactBaseName) apply { (v, id, a, f) => f(v, id, a) },
     JFX.deployDir := None,
     JFX.output <<= (JFX.artifactBaseName, JFX.artifactBaseNameValue, JFX.deployDir) apply Output.apply,
-    JFX.templatefile := None,
+    JFX.templateFile := None,
     JFX.templateDestFile := None,
     JFX.placeholderId := "javafx",
-    JFX.template <<= (JFX.templatefile, JFX.templateDestFile, JFX.placeholderId) apply Template.apply,
+    JFX.template <<= (JFX.templateFile, JFX.templateDestFile, JFX.placeholderId) apply Template.apply,
     JFX.width := 800,
     JFX.height := 600,
     JFX.embeddedWidth := "100%",
@@ -272,7 +269,7 @@ object JavaFXPlugin extends Plugin {
   //	Settings that must be manually loaded
 
   val jfxSettings = Seq(
-    mainClass in (Compile, run) <<= (JFX.mainClass, JFX.javaOnly) map ((c, j) => if (j) Some(c) else Some(c + "Launcher")),
+    mainClass in (Compile, run) <<= JFX.mainClass map (Some(_)),
     (unmanagedClasspath in Compile) <<= (unmanagedClasspath in Compile, JFX.addJfxrtToClasspath, JFX.jfxrt) map { (cp, add, jfxrt) => if (add) cp :+ Attributed.blank(file(jfxrt)) else cp },
     (unmanagedClasspath in Runtime) <<= (unmanagedClasspath in Runtime, JFX.addJfxrtToClasspath, JFX.jfxrt) map { (cp, add, jfxrt) => if (add) cp :+ Attributed.blank(file(jfxrt)) else cp },
     autoScalaLibrary <<= JFX.javaOnly(x => !x),
