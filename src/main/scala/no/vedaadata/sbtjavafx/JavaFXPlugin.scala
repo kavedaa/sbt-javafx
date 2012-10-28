@@ -5,6 +5,39 @@ import Keys._
 import classpath.ClasspathUtilities
 import org.apache.tools.ant
 
+
+//	Types and utils used for jdk/sdk configuration
+
+sealed trait DevKit
+case class JDK(path: String) extends DevKit
+case class SDK(path: String) extends DevKit
+
+object DevKit {
+  def jfxrt(devKit: DevKit) = devKit match {
+    case JDK(path) => path + "/jre/lib/jfxrt.jar"
+    case SDK(path) => path + "/rt/lib/jfxrt.jar"
+  }
+  def antLib(devKit: DevKit) = devKit match {
+    case JDK(path) => path + "/lib/ant-javafx.jar"
+    case SDK(path) => path + "/lib/ant-javafx.jar"
+  }
+  def isJdk(devKit: DevKit) = devKit.isInstanceOf[JDK]
+}
+
+
+//	Wrapper classes for grouping the settings, since there's a lot of them
+
+case class JFX(
+  paths: Paths,
+  mainClass: String,
+  output: Output,
+  template: Template,
+  dimensions: Dimensions,
+  permissions: Permissions,
+  signing: Signing)
+
+case class Paths(devKit: Option[DevKit], jfxrt: String, antLib: String)
+
 case class Output(artifactBaseName: (String, ModuleID, Artifact) => String, artifactBaseNameValue: String, deployDir: Option[String])
 
 case class Template(file: Option[String], destFile: Option[String], placeholderId: String)
@@ -15,14 +48,8 @@ case class Signing(keyStore: Option[File], storePass: Option[String], alias: Opt
 
 case class Dimensions(width: Int, height: Int, embeddedWidth: String, embeddedHeight: String)
 
-case class JFX(
-  antLib: Option[String],
-  mainClass: String,
-  output: Output,
-  template: Template,
-  dimensions: Dimensions,
-  permissions: Permissions,
-  signing: Signing)
+
+//	The plugin
 
 object JavaFXPlugin extends Plugin {
 
@@ -34,15 +61,15 @@ object JavaFXPlugin extends Plugin {
 
     private def prefixed(name: String) = List(jfx.key.label, name) mkString "-"
 
-    val jdkDir = SettingKey[Option[String]](prefixed("jdk-dir"), "Location of the JDK.")
+    val devKit = SettingKey[Option[DevKit]](prefixed("dev-kit"), "Path to JDK or JavaFX SDK.")
 
-    val sdkDir = SettingKey[Option[String]](prefixed("sdk-dir"), "Location of stand-alone JavaFX SDK.")
+    val jfxrt = SettingKey[String](prefixed("jfxrt"), "Path to jfxrt.jar.")
 
-    val jfxRt = SettingKey[Option[String]](prefixed("jfx-rt"), "Location of jfxrt.jar.")
+    val antLib = SettingKey[String](prefixed("ant-lib"), "Path to ant-javafx.jar.")
 
-    val addJfxRtToClasspath = SettingKey[Boolean](prefixed("add-jfx-rt-to-classpath"), "Whether jfxrt.jar should be added to compile and runtime classpaths.")
+    val paths = SettingKey[Paths](prefixed("paths"), "JavaFX paths settings.")
 
-    val antLib = SettingKey[Option[String]](prefixed("ant-lib"), "location of ant-javafx.jar.")
+    val addJfxrtToClasspath = SettingKey[Boolean](prefixed("add-jfxrt-to-classpath"), "Whether jfxrt.jar should be added to compile and runtime classpaths.")
 
     val mainClass = SettingKey[String](prefixed("main-class"), "Entry point for JavaFX application, must extend javafx.application.Application and implement the start() method.")
 
@@ -84,6 +111,10 @@ object JavaFXPlugin extends Plugin {
 
     val deploy = TaskKey[Unit]("deploy", "Copies a JavaFX application to a configurable directory.")
 
+    //	Some convenience methods
+
+    def jdk(s: String) = Some(JDK(s))
+    def sdk(s: String) = Some(SDK(s))
   }
 
   //	Define the packaging task
@@ -93,7 +124,7 @@ object JavaFXPlugin extends Plugin {
 
       //	Check that the JavaFX Ant library is present
 
-      val antLib = jfx.antLib getOrElse sys.error("Path to ant-javafx.jar is not defined.")
+      val antLib = jfx.paths.antLib
 
       if (!file(antLib).exists) sys.error(antLib + " does not exist.")
 
@@ -205,14 +236,14 @@ object JavaFXPlugin extends Plugin {
     IO copyDirectory (distDir, deployDistDir, overwrite = true, preserveLastModified = true)
   }
 
-  //	Define the settings
+  //	Settings that are automatically loaded
 
-  val jfxSettings = Seq(
-    JFX.jdkDir := None,
-    JFX.sdkDir := None,
-    JFX.jfxRt <<= (JFX.jdkDir, JFX.sdkDir) apply { (jdkDir, sdkDir) => jdkDir.map(_ + "/jre/lib/jfxrt.jar") orElse sdkDir.map(_ + "/rt/lib/jfxrt.jar") },
-    JFX.addJfxRtToClasspath <<= JFX.jdkDir(!_.isDefined),
-    JFX.antLib <<= (JFX.jdkDir, JFX.sdkDir) apply { (jdkDir, sdkDir) => jdkDir.map(_ + "/lib/ant-javafx.jar") orElse sdkDir.map(_ + "/lib/ant-javafx.jar") },
+  override val settings = Seq(
+    JFX.devKit := None,
+    JFX.jfxrt <<= JFX.devKit(_ map (devKit => DevKit.jfxrt(devKit)) getOrElse sys.error("Path to jfxrt.jar not defined.")),
+    JFX.antLib <<= JFX.devKit(_ map (devKit => DevKit.antLib(devKit)) getOrElse sys.error("Path to ant-javafx.jar not defined.")),
+    JFX.paths <<= (JFX.devKit, JFX.jfxrt, JFX.antLib) apply Paths.apply,
+    JFX.addJfxrtToClasspath <<= JFX.devKit(_ map (devKit => !DevKit.isJdk(devKit)) getOrElse true),
     JFX.javaOnly := false,
     JFX.artifactBaseName <<= crossPaths(p => (v, id, a) => List(Some(a.name), if (p) Some("_" + v) else None, Some("-" + id.revision)).flatten.mkString),
     JFX.artifactBaseNameValue <<= (scalaVersion, projectID, artifact, JFX.artifactBaseName) apply { (v, id, a, f) => f(v, id, a) },
@@ -236,18 +267,17 @@ object JavaFXPlugin extends Plugin {
     JFX.keyPass := None,
     JFX.storeType := None,
     JFX.signing <<= (JFX.keyStore, JFX.storePass, JFX.alias, JFX.keyPass, JFX.storeType) apply Signing.apply,
+    jfx <<= (JFX.paths, JFX.mainClass, JFX.output, JFX.template, JFX.dimensions, JFX.permissions, JFX.signing) apply { new JFX(_, _, _, _, _, _, _) })
+
+  //	Settings that must be manually loaded
+
+  val jfxSettings = Seq(
     mainClass in (Compile, run) <<= (JFX.mainClass, JFX.javaOnly) map ((c, j) => if (j) Some(c) else Some(c + "Launcher")),
-    (unmanagedClasspath in Compile) <<= (unmanagedClasspath in Compile, JFX.addJfxRtToClasspath, JFX.jfxRt) map { (cp, add, jfxRt) => if (add) cp :+ Attributed.blank(file(jfxRt getOrElse sys.error("Path to jfxrt.jar is not defined."))) else cp },
-    (unmanagedClasspath in Runtime) <<= (unmanagedClasspath in Runtime, JFX.addJfxRtToClasspath, JFX.jfxRt) map { (cp, add, jfxRt) => if (add) cp :+ Attributed.blank(file(jfxRt getOrElse sys.error("Path to jfxrt.jar is not defined."))) else cp },
+    (unmanagedClasspath in Compile) <<= (unmanagedClasspath in Compile, JFX.addJfxrtToClasspath, JFX.jfxrt) map { (cp, add, jfxrt) => if (add) cp :+ Attributed.blank(file(jfxrt)) else cp },
+    (unmanagedClasspath in Runtime) <<= (unmanagedClasspath in Runtime, JFX.addJfxrtToClasspath, JFX.jfxrt) map { (cp, add, jfxrt) => if (add) cp :+ Attributed.blank(file(jfxrt)) else cp },
     autoScalaLibrary <<= JFX.javaOnly(x => !x),
     crossPaths <<= JFX.javaOnly(x => !x),
     fork in run := true,
-    jfx <<= (JFX.antLib, JFX.mainClass, JFX.output, JFX.template, JFX.dimensions, JFX.permissions, JFX.signing) apply { new JFX(_, _, _, _, _, _, _) },
     JFX.packageJavaFx <<= packageJavaFxTask,
     JFX.deploy <<= deployTask)
-
-  def enableJFX = {
-    println("JavaFX support enabled.")
-    seq(jfxSettings: _*)
-  }
 }
