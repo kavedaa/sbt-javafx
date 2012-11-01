@@ -36,7 +36,7 @@ case class JFX(
 
 case class Paths(devKit: Option[DevKit], jfxrt: String, antLib: String)
 
-case class Output(artifactBaseName: (String, ModuleID, Artifact) => String, artifactBaseNameValue: String, deployDir: Option[String])
+case class Output(nativeBundles: String, artifactBaseName: (String, ModuleID, Artifact) => String, artifactBaseNameValue: String, deployDir: Option[String])
 
 case class Template(file: Option[String], destFile: Option[String], placeholderId: String)
 
@@ -74,6 +74,7 @@ object JavaFXPlugin extends Plugin {
 
     val output = SettingKey[Output](prefixed("output"), "JavaFX output settings.")
 
+    val nativeBundles = SettingKey[String](prefixed("native-bundles"), "Which native bundles to create, if any.")
     val artifactBaseName = SettingKey[(String, ModuleID, Artifact) => String](prefixed("artifact-base-name"), "Function that produces the JavaFX artifact name (without file extension) from its definition.")
     val artifactBaseNameValue = SettingKey[String](prefixed("artifact-base-name-value"), "The actual name of the JavaFX artifact (without file extension).")
     val deployDir = SettingKey[Option[String]](prefixed("deploy-dir"), "Directory the packaged application will be copied to when executing the 'deploy' task.")
@@ -188,7 +189,7 @@ object JavaFXPlugin extends Plugin {
                 </fx:signjar>
               }
             }
-            <fx:deploy width={ jfx.dimensions.width.toString } height={ jfx.dimensions.height.toString } embeddedWidth={ jfx.dimensions.embeddedWidth } embeddedHeight={ jfx.dimensions.embeddedHeight } outdir={ distDir.getAbsolutePath } outfile={ jfx.output.artifactBaseNameValue } placeholderId={ jfx.template.placeholderId }>
+            <fx:deploy width={ jfx.dimensions.width.toString } height={ jfx.dimensions.height.toString } embeddedWidth={ jfx.dimensions.embeddedWidth } embeddedHeight={ jfx.dimensions.embeddedHeight } outdir={ distDir.getAbsolutePath } outfile={ jfx.output.artifactBaseNameValue } placeholderId={ jfx.template.placeholderId } nativeBundles={ jfx.output.nativeBundles }>
               <fx:application refid="fxApp"/>
               <fx:resources>
                 <fx:fileset dir={ distDir.getAbsolutePath } includes={ jfx.output.artifactBaseNameValue + ".jar" }/>
@@ -242,10 +243,11 @@ object JavaFXPlugin extends Plugin {
     JFX.paths <<= (JFX.devKit, JFX.jfxrt, JFX.antLib) apply Paths.apply,
     JFX.addJfxrtToClasspath <<= JFX.devKit(_ map (devKit => !DevKit.isJdk(devKit)) getOrElse true),
     JFX.javaOnly := false,
+    JFX.nativeBundles := "none",
     JFX.artifactBaseName <<= crossPaths(p => (v, id, a) => List(Some(a.name), if (p) Some("_" + v) else None, Some("-" + id.revision)).flatten.mkString),
     JFX.artifactBaseNameValue <<= (scalaVersion, projectID, artifact, JFX.artifactBaseName) apply { (v, id, a, f) => f(v, id, a) },
     JFX.deployDir := None,
-    JFX.output <<= (JFX.artifactBaseName, JFX.artifactBaseNameValue, JFX.deployDir) apply Output.apply,
+    JFX.output <<= (JFX.nativeBundles, JFX.artifactBaseName, JFX.artifactBaseNameValue, JFX.deployDir) apply Output.apply,
     JFX.templateFile := None,
     JFX.templateDestFile := None,
     JFX.placeholderId := "javafx",
@@ -263,8 +265,7 @@ object JavaFXPlugin extends Plugin {
     JFX.alias := None,
     JFX.keyPass := None,
     JFX.storeType := None,
-    JFX.signing <<= (JFX.keyStore, JFX.storePass, JFX.alias, JFX.keyPass, JFX.storeType) apply Signing.apply,
-    jfx <<= (JFX.paths, JFX.mainClass, JFX.output, JFX.template, JFX.dimensions, JFX.permissions, JFX.signing) apply { new JFX(_, _, _, _, _, _, _) })
+    JFX.signing <<= (JFX.keyStore, JFX.storePass, JFX.alias, JFX.keyPass, JFX.storeType) apply Signing.apply)
 
   //	Settings that must be manually loaded
 
@@ -276,5 +277,6 @@ object JavaFXPlugin extends Plugin {
     crossPaths <<= JFX.javaOnly(x => !x),
     fork in run := true,
     JFX.packageJavaFx <<= packageJavaFxTask,
-    JFX.deploy <<= deployTask)
+    JFX.deploy <<= deployTask,
+    jfx <<= (JFX.paths, JFX.mainClass, JFX.output, JFX.template, JFX.dimensions, JFX.permissions, JFX.signing) apply { new JFX(_, _, _, _, _, _, _) })
 }
