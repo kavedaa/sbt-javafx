@@ -34,7 +34,7 @@ case class JFX(
   permissions: Permissions,
   signing: Signing)
 
-case class Paths(devKit: Option[DevKit], jfxrt: String, antLib: String)
+case class Paths(devKit: Option[DevKit], jfxrt: Option[String], antLib: Option[String])
 
 case class Output(nativeBundles: String, artifactBaseName: (String, ModuleID, Artifact) => String, artifactBaseNameValue: String, deployDir: Option[String])
 
@@ -60,9 +60,9 @@ object JavaFXPlugin extends Plugin {
 
     val devKit = SettingKey[Option[DevKit]](prefixed("dev-kit"), "Path to JDK or JavaFX SDK.")
 
-    val jfxrt = SettingKey[String](prefixed("jfxrt"), "Path to jfxrt.jar.")
+    val jfxrt = SettingKey[Option[String]](prefixed("jfxrt"), "Path to jfxrt.jar.")
 
-    val antLib = SettingKey[String](prefixed("ant-lib"), "Path to ant-javafx.jar.")
+    val antLib = SettingKey[Option[String]](prefixed("ant-lib"), "Path to ant-javafx.jar.")
 
     val paths = SettingKey[Paths](prefixed("paths"), "JavaFX paths settings.")
 
@@ -122,7 +122,7 @@ object JavaFXPlugin extends Plugin {
 
       //	Check that the JavaFX Ant library is present
 
-      val antLib = jfx.paths.antLib
+      val antLib = jfx.paths.antLib getOrElse sys.error("Path to ant-javafx.jar not defined.")
 
       if (!file(antLib).exists) sys.error(antLib + " does not exist.")
 
@@ -234,12 +234,12 @@ object JavaFXPlugin extends Plugin {
     IO copyDirectory (distDir, deployDistDir, overwrite = true, preserveLastModified = true)
   }
 
-  //	Settings that are automatically loaded
+  //	Settings that are automatically loaded (as defaults)
 
   override val settings = Seq(
     JFX.devKit := None,
-    JFX.jfxrt <<= JFX.devKit(_ map (devKit => DevKit.jfxrt(devKit)) getOrElse sys.error("Path to jfxrt.jar not defined.")),
-    JFX.antLib <<= JFX.devKit(_ map (devKit => DevKit.antLib(devKit)) getOrElse sys.error("Path to ant-javafx.jar not defined.")),
+    JFX.jfxrt <<= JFX.devKit(_ map DevKit.jfxrt),
+    JFX.antLib <<= JFX.devKit(_ map DevKit.antLib),
     JFX.paths <<= (JFX.devKit, JFX.jfxrt, JFX.antLib) apply Paths.apply,
     JFX.addJfxrtToClasspath <<= JFX.devKit(_ map (devKit => !DevKit.isJdk(devKit)) getOrElse true),
     JFX.javaOnly := false,
@@ -271,8 +271,8 @@ object JavaFXPlugin extends Plugin {
 
   val jfxSettings = Seq(
     mainClass in (Compile, run) <<= JFX.mainClass map (Some(_)),
-    (unmanagedClasspath in Compile) <<= (unmanagedClasspath in Compile, JFX.addJfxrtToClasspath, JFX.jfxrt) map { (cp, add, jfxrt) => if (add) cp :+ Attributed.blank(file(jfxrt)) else cp },
-    (unmanagedClasspath in Runtime) <<= (unmanagedClasspath in Runtime, JFX.addJfxrtToClasspath, JFX.jfxrt) map { (cp, add, jfxrt) => if (add) cp :+ Attributed.blank(file(jfxrt)) else cp },
+    (unmanagedClasspath in Compile) <<= (unmanagedClasspath in Compile, JFX.addJfxrtToClasspath, JFX.jfxrt) map { (cp, add, jfxrt) => if (add) cp :+ Attributed.blank(file(jfxrt getOrElse sys.error("Path to jfxrt.jar not defined."))) else cp },
+    (unmanagedClasspath in Runtime) <<= (unmanagedClasspath in Runtime, JFX.addJfxrtToClasspath, JFX.jfxrt) map { (cp, add, jfxrt) => if (add) cp :+ Attributed.blank(file(jfxrt getOrElse sys.error("Path to jfxrt.jar not defined."))) else cp },
     autoScalaLibrary <<= JFX.javaOnly(x => !x),
     crossPaths <<= JFX.javaOnly(x => !x),
     fork in run := true,

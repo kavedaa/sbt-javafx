@@ -96,10 +96,10 @@ JFX.devKit := JFX.sdk("C:/Program Files/Oracle/JavaFX 2.2 SDK")
 You can also specify the full paths to jfxrt.jar and ant-javafx.jar individually, e.g.:
 
 ```scala
-JFX.jfxrt := "C:/Program Files/Java/jdk1.7.0_07/jre/lib/jfxrt.jar"
+JFX.jfxrt := Some("C:/Program Files/Java/jdk1.7.0_07/jre/lib/jfxrt.jar")
 ```
 ```scala
-JFX.antLib := "C:/Program Files/Java/jdk1.7.0_07/lib/ant-javafx.jar"
+JFX.antLib := Some("C:/Program Files/Java/jdk1.7.0_07/lib/ant-javafx.jar")
 ```
 
 (These will take precedence over corresponding paths possibly calculated from specified JDK or SDK directory.)
