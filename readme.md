@@ -11,7 +11,7 @@ To use the plugin, for now you'll have to clone the project from GitHub and run 
 To use the plugin in an SBT project, add an `.sbt` file (e.g. `plugins.sbt`) in the project's `project` directory, with the following content:  
 
 ```scala
-addSbtPlugin("no.vedaadata" %% "sbt-javafx" % "0.35-SNAPSHOT")
+addSbtPlugin("no.vedaadata" %% "sbt-javafx" % "0.4-SNAPSHOT")
 ```
 
 (Make sure to check the latest version number in case I forget to update the documentation.)
