@@ -32,9 +32,17 @@ JFX.devKit := JFX.jdk("C:/Program Files/Java/jdk1.7.0_07")
 JFX.addJfxrtToClasspath := true
 ```
 
-To package the applicationm, simply run the `package-javafx` task.
+To package the application, simply run the `package-javafx` task.
 
 Read on for more details. 
+
+## Examples
+
+Instead of, or in addition to, reading the rest of this document, you might want to take a look at some [examples of using the plugin](https://github.com/kavedaa/sbt-javafx-examples).
+
+Note that these examples lack the `JFX.devKit` setting shown above, since this is of course specific to the system they might be built on.
+
+(It is possible that the examples may not be 100% in sync with the current version of the plugin at any given time, but they should still be illustrative of the concepts.) 
 
 ## Enabling the plugin
 
@@ -46,7 +54,7 @@ Adding the following line to an `.sbt` file in the `project` directory:
 addSbtPlugin("no.vedaadata" %% "sbt-javafx" % "0.35-SNAPSHOT")
 ```
 
-(This makes the plugin avaiable to your project.)
+(This makes the plugin available to your project.)
 
 And adding the following line to your build `.sbt` file:
 
