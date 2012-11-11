@@ -1,6 +1,6 @@
 # sbt-javafx
 
-sbt-javafx is a plugin for [SBT](http://www.scala-sbt.org/) (Simple Build Tool) for packaging JavaFX applications.
+sbt-javafx is a plugin for [SBT](http://www.scala-sbt.org/) (Simple Build Tool) for packaging JavaFX applications. It can be used for both Scala- and Java-based applications.
 
 Currently the plugin is in beta mode, which means that some settings might change.
 
