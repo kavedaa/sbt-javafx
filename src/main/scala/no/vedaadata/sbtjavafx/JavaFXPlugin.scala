@@ -27,7 +27,7 @@ object DevKit {
 
 case class JFX(
   paths: Paths,
-  mainClass: String,
+  mainClass: Option[String],
   output: Output,
   template: Template,
   dimensions: Dimensions,
@@ -68,7 +68,7 @@ object JavaFXPlugin extends Plugin {
 
     val addJfxrtToClasspath = SettingKey[Boolean](prefixed("add-jfxrt-to-classpath"), "Whether jfxrt.jar should be added to compile and runtime classpaths.")
 
-    val mainClass = SettingKey[String](prefixed("main-class"), "Entry point for JavaFX application, must extend javafx.application.Application and implement the start() method.")
+    val mainClass = SettingKey[Option[String]](prefixed("main-class"), "Entry point for JavaFX application, must extend javafx.application.Application and implement the start() method.")
 
     val javaOnly = SettingKey[Boolean](prefixed("java-only"), "Convenience setting for JavaFX applications in pure Java, sets some other settings to usable defaults for this scenario.")
 
@@ -167,7 +167,7 @@ object JavaFXPlugin extends Plugin {
         <project name={ name } default="default" basedir="." xmlns:fx="javafx:com.sun.javafx.tools.ant">
           <target name="default">
             <taskdef resource="com/sun/javafx/tools/ant/antlib.xml" uri="javafx:com.sun.javafx.tools.ant" classpath={ antLib }/>
-            <fx:application id="fxApp" name={ name } mainClass={ jfx.mainClass }/>
+            <fx:application id="fxApp" name={ name } mainClass={ jfx.mainClass getOrElse sys.error("JFX.mainClass not defined") }/>
             <fx:jar destfile={ jarFile.getAbsolutePath }>
               <fx:application refid="fxApp"/>
               <fx:fileset dir={ classDir.getAbsolutePath }/>
@@ -270,7 +270,7 @@ object JavaFXPlugin extends Plugin {
   //	Settings that must be manually loaded
 
   val jfxSettings = Seq(
-    mainClass in (Compile, run) <<= JFX.mainClass map (Some(_)),
+    mainClass in (Compile, run) <<= JFX.mainClass map(x => x),
     (unmanagedClasspath in Compile) <<= (unmanagedClasspath in Compile, JFX.addJfxrtToClasspath, JFX.jfxrt) map { (cp, add, jfxrt) => if (add) cp :+ Attributed.blank(file(jfxrt getOrElse sys.error("Path to jfxrt.jar not defined."))) else cp },
     (unmanagedClasspath in Runtime) <<= (unmanagedClasspath in Runtime, JFX.addJfxrtToClasspath, JFX.jfxrt) map { (cp, add, jfxrt) => if (add) cp :+ Attributed.blank(file(jfxrt getOrElse sys.error("Path to jfxrt.jar not defined."))) else cp },
     autoScalaLibrary <<= JFX.javaOnly(x => !x),
