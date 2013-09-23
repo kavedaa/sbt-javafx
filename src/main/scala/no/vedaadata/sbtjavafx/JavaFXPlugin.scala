@@ -32,6 +32,7 @@ case class JFX(
   template: Template,
   dimensions: Dimensions,
   permissions: Permissions,
+  info: Info,
   signing: Signing)
 
 case class Paths(devKit: Option[DevKit], jfxrt: Option[String], antLib: Option[String])
@@ -45,6 +46,8 @@ case class Permissions(elevated: Boolean, cacheCertificates: Boolean)
 case class Signing(keyStore: Option[File], storePass: Option[String], alias: Option[String], keyPass: Option[String], storeType: Option[String])
 
 case class Dimensions(width: Int, height: Int, embeddedWidth: String, embeddedHeight: String)
+
+case class Info(vendor: String, title: String, category: Option[String], copyright: Option[String], description: Option[String], license: Option[String])
 
 //	The plugin
 
@@ -86,6 +89,14 @@ object JavaFXPlugin extends Plugin {
     val placeholderId = SettingKey[String](prefixed("placeholder-id"), "HTML template placeholder id.")
 
     val dimensions = SettingKey[Dimensions](prefixed("dimensions"), "JavaFX dimensions settings.")
+    
+    val info = SettingKey[Info](prefixed("info"),"Application info settings")   
+    val vendor = SettingKey[String](prefixed("vendor"), "Application vendor")
+    val title = SettingKey[String](prefixed("title"), "Application title")   
+    val category = SettingKey[Option[String]](prefixed("category"), "Application category")
+    val description = SettingKey[Option[String]](prefixed("description"), "Application description")
+    val copyright = SettingKey[Option[String]](prefixed("copyright"), "Application copyright")
+    val license = SettingKey[Option[String]](prefixed("license"), "Application license")
 
     val width = SettingKey[Int](prefixed("width"), "JavaFX application width.")
     val height = SettingKey[Int](prefixed("height"), "JavaFX application height.")
@@ -176,6 +187,9 @@ object JavaFXPlugin extends Plugin {
               </fx:resources>
             </fx:jar>
             {
+              
+
+
               if (jfx.permissions.elevated) {
                 <fx:signjar destdir={ distDir.getAbsolutePath } keyStore={ jfx.signing.keyStore map (_.getAbsolutePath) getOrElse sys.error("fx-key-store is not defined") } storePass={ jfx.signing.storePass getOrElse sys.error("fx-store-pass is not defined") } alias={ jfx.signing.alias getOrElse sys.error("fx-alias is not defined") } keyPass={ jfx.signing.keyPass getOrElse sys.error("fx-key-pass is not defined") } storeType={ jfx.signing.storeType getOrElse "jks" }>
                   <fx:fileset dir={ distDir.getAbsolutePath }/>
@@ -191,6 +205,8 @@ object JavaFXPlugin extends Plugin {
             }
             <fx:deploy width={ jfx.dimensions.width.toString } height={ jfx.dimensions.height.toString } embeddedWidth={ jfx.dimensions.embeddedWidth } embeddedHeight={ jfx.dimensions.embeddedHeight } outdir={ distDir.getAbsolutePath } outfile={ jfx.output.artifactBaseNameValue } placeholderId={ jfx.template.placeholderId } nativeBundles={ jfx.output.nativeBundles }>
               <fx:application refid="fxApp"/>
+              <fx:info vendor={ jfx.info.vendor } title={jfx.info.title} category={jfx.info.category getOrElse "" } description={jfx.info.description getOrElse ""} copyright={jfx.info.copyright getOrElse ""} license={jfx.info.license getOrElse ""}></fx:info>
+
               <fx:resources>
                 <fx:fileset dir={ distDir.getAbsolutePath } includes={ jfx.output.artifactBaseNameValue + ".jar" }/>
                 { if (libJars.nonEmpty) <fx:fileset dir={ crossTarget.getAbsolutePath } includes="lib/*.jar"/> }
@@ -260,6 +276,13 @@ object JavaFXPlugin extends Plugin {
     JFX.elevated := false,
     JFX.cacheCertificates := false,
     JFX.permissions <<= (JFX.elevated, JFX.cacheCertificates) apply { Permissions(_, _) },
+    JFX.vendor := "Unknown",
+    JFX.title  := name.value,
+    JFX.category := None,
+    JFX.description := None,
+    JFX.copyright := None,
+    JFX.license := None,
+    JFX.info <<= (JFX.vendor, JFX.title, JFX.category, JFX.description, JFX. copyright, JFX.license) apply Info.apply,
     JFX.keyStore := None,
     JFX.storePass := None,
     JFX.alias := None,
@@ -278,5 +301,5 @@ object JavaFXPlugin extends Plugin {
     fork in run := true,
     JFX.packageJavaFx <<= packageJavaFxTask,
     JFX.deploy <<= deployTask,
-    jfx <<= (JFX.paths, JFX.mainClass, JFX.output, JFX.template, JFX.dimensions, JFX.permissions, JFX.signing) apply { new JFX(_, _, _, _, _, _, _) })
+    jfx <<= (JFX.paths, JFX.mainClass, JFX.output, JFX.template, JFX.dimensions, JFX.permissions, JFX.info, JFX.signing) apply { new JFX(_, _, _, _, _,_, _, _) })
 }
