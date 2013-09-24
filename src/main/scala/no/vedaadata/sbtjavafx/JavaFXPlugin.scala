@@ -47,7 +47,7 @@ case class Signing(keyStore: Option[File], storePass: Option[String], alias: Opt
 
 case class Dimensions(width: Int, height: Int, embeddedWidth: String, embeddedHeight: String)
 
-case class Info(vendor: String, title: String, category: Option[String], copyright: Option[String], description: Option[String], license: Option[String])
+case class Info(vendor: String, title: String, category: String, copyright: String, description: String, license: String)
 
 //	The plugin
 
@@ -93,10 +93,10 @@ object JavaFXPlugin extends Plugin {
     val info = SettingKey[Info](prefixed("info"),"Application info settings")   
     val vendor = SettingKey[String](prefixed("vendor"), "Application vendor")
     val title = SettingKey[String](prefixed("title"), "Application title")   
-    val category = SettingKey[Option[String]](prefixed("category"), "Application category")
-    val description = SettingKey[Option[String]](prefixed("description"), "Application description")
-    val copyright = SettingKey[Option[String]](prefixed("copyright"), "Application copyright")
-    val license = SettingKey[Option[String]](prefixed("license"), "Application license")
+    val category = SettingKey[String](prefixed("category"), "Application category")
+    val description = SettingKey[String](prefixed("description"), "Application description")
+    val copyright = SettingKey[String](prefixed("copyright"), "Application copyright")
+    val license = SettingKey[String](prefixed("license"), "Application license")
 
     val width = SettingKey[Int](prefixed("width"), "JavaFX application width.")
     val height = SettingKey[Int](prefixed("height"), "JavaFX application height.")
@@ -205,7 +205,7 @@ object JavaFXPlugin extends Plugin {
             }
             <fx:deploy width={ jfx.dimensions.width.toString } height={ jfx.dimensions.height.toString } embeddedWidth={ jfx.dimensions.embeddedWidth } embeddedHeight={ jfx.dimensions.embeddedHeight } outdir={ distDir.getAbsolutePath } outfile={ jfx.output.artifactBaseNameValue } placeholderId={ jfx.template.placeholderId } nativeBundles={ jfx.output.nativeBundles }>
               <fx:application refid="fxApp"/>
-              <fx:info vendor={ jfx.info.vendor } title={jfx.info.title} category={jfx.info.category getOrElse "" } description={jfx.info.description getOrElse ""} copyright={jfx.info.copyright getOrElse ""} license={jfx.info.license getOrElse ""}></fx:info>
+              <fx:info vendor={ jfx.info.vendor } title={ jfx.info.title } category={ jfx.info.category } description={ jfx.info.description } copyright={jfx.info.copyright } license={ jfx.info.license }></fx:info>
 
               <fx:resources>
                 <fx:fileset dir={ distDir.getAbsolutePath } includes={ jfx.output.artifactBaseNameValue + ".jar" }/>
@@ -278,10 +278,10 @@ object JavaFXPlugin extends Plugin {
     JFX.permissions <<= (JFX.elevated, JFX.cacheCertificates) apply { Permissions(_, _) },
     JFX.vendor := "Unknown",
     JFX.title  := name.value,
-    JFX.category := None,
-    JFX.description := None,
-    JFX.copyright := None,
-    JFX.license := None,
+    JFX.category := "",
+    JFX.description := "",
+    JFX.copyright := "",
+    JFX.license := "",
     JFX.info <<= (JFX.vendor, JFX.title, JFX.category, JFX.description, JFX. copyright, JFX.license) apply Info.apply,
     JFX.keyStore := None,
     JFX.storePass := None,
