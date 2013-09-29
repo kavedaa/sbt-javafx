@@ -147,6 +147,12 @@ JFX.javaOnly := true
 
 This is a convenience setting that excludes the standard Scala library from being packed with the application, and makes the output path a bit simpler, so that it becomes e.g. `target/my-javafx-application-1.0/`.
 
+### Native bundles
+
+#### Using the correct Java version
+
+If you use the JRE version, you will get an error message saying "jvm.dll is not found" (on Windows, probably similar on other platforms).
+
 ## Running from within SBT
 
 SBT is not able to launch a `javafx.application.Application` on its own. It needs a class with a static `main` method for its `run` task, which name must be configured in the `mainClass` setting (which is distinct from `JFX.mainClass`).

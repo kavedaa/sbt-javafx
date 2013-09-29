@@ -33,7 +33,8 @@ case class JFX(
   dimensions: Dimensions,
   permissions: Permissions,
   info: Info,
-  signing: Signing)
+  signing: Signing,
+  misc: Misc)
 
 case class Paths(devKit: Option[DevKit], jfxrt: Option[String], antLib: Option[String])
 
@@ -46,6 +47,8 @@ case class Permissions(elevated: Boolean, cacheCertificates: Boolean)
 case class Signing(keyStore: Option[File], storePass: Option[String], alias: Option[String], keyPass: Option[String], storeType: Option[String])
 
 case class Dimensions(width: Int, height: Int, embeddedWidth: String, embeddedHeight: String)
+
+case class Misc(verbose: Boolean)
 
 case class Info(vendor: String, title: String, category: String, copyright: String, description: String, license: String)
 
@@ -115,6 +118,10 @@ object JavaFXPlugin extends Plugin {
     val alias = SettingKey[Option[String]](prefixed("alias"), "Key name for jar signing.")
     val keyPass = SettingKey[Option[String]](prefixed("keypass"), "Key password for jar signing.")
     val storeType = SettingKey[Option[String]](prefixed("storetype"), "Keystore type for signing.")
+
+    val misc = SettingKey[Misc](prefixed("misc"), "Misc JavaFX settings.")
+
+    val verbose = SettingKey[Boolean](prefixed("verbose"), "Enable verbose output from packager.")
 
     val packageJavaFx = TaskKey[Unit]("package-javafx", "Packages a JavaFX application.")
 
@@ -203,7 +210,7 @@ object JavaFXPlugin extends Plugin {
                 </fx:signjar>
               }
             }
-            <fx:deploy width={ jfx.dimensions.width.toString } height={ jfx.dimensions.height.toString } embeddedWidth={ jfx.dimensions.embeddedWidth } embeddedHeight={ jfx.dimensions.embeddedHeight } outdir={ distDir.getAbsolutePath } outfile={ jfx.output.artifactBaseNameValue } placeholderId={ jfx.template.placeholderId } nativeBundles={ jfx.output.nativeBundles }>
+            <fx:deploy width={ jfx.dimensions.width.toString } height={ jfx.dimensions.height.toString } embeddedWidth={ jfx.dimensions.embeddedWidth } embeddedHeight={ jfx.dimensions.embeddedHeight } outdir={ distDir.getAbsolutePath } outfile={ jfx.output.artifactBaseNameValue } placeholderId={ jfx.template.placeholderId } nativeBundles={ jfx.output.nativeBundles } verbose={ jfx.misc.verbose.toString }>
               <fx:application refid="fxApp"/>
               <fx:info vendor={ jfx.info.vendor } title={ jfx.info.title } category={ jfx.info.category } description={ jfx.info.description } copyright={jfx.info.copyright } license={ jfx.info.license }></fx:info>
 
@@ -257,7 +264,8 @@ object JavaFXPlugin extends Plugin {
     JFX.jfxrt <<= JFX.devKit(_ map DevKit.jfxrt),
     JFX.antLib <<= JFX.devKit(_ map DevKit.antLib),
     JFX.paths <<= (JFX.devKit, JFX.jfxrt, JFX.antLib) apply Paths.apply,
-    JFX.addJfxrtToClasspath <<= JFX.devKit(_ map (devKit => !DevKit.isJdk(devKit)) getOrElse true),
+    JFX.addJfxrtToClasspath <<= JFX.devKit(_ map (devKit => !DevKit.isJdk(devKit)) getOrElse false),
+    JFX.mainClass := None,
     JFX.javaOnly := false,
     JFX.nativeBundles := "none",
     JFX.artifactBaseName <<= crossPaths(p => (v, id, a) => List(Some(a.name), if (p) Some("_" + v) else None, Some("-" + id.revision)).flatten.mkString),
@@ -277,7 +285,7 @@ object JavaFXPlugin extends Plugin {
     JFX.cacheCertificates := false,
     JFX.permissions <<= (JFX.elevated, JFX.cacheCertificates) apply { Permissions(_, _) },
     JFX.vendor := "Unknown",
-    JFX.title  := name.value,
+    JFX.title <<= name,
     JFX.category := "",
     JFX.description := "",
     JFX.copyright := "",
@@ -288,12 +296,14 @@ object JavaFXPlugin extends Plugin {
     JFX.alias := None,
     JFX.keyPass := None,
     JFX.storeType := None,
-    JFX.signing <<= (JFX.keyStore, JFX.storePass, JFX.alias, JFX.keyPass, JFX.storeType) apply Signing.apply)
+    JFX.signing <<= (JFX.keyStore, JFX.storePass, JFX.alias, JFX.keyPass, JFX.storeType) apply Signing.apply,
+    JFX.verbose := false,
+    JFX.misc <<= (JFX.verbose) apply Misc.apply)
 
   //	Settings that must be manually loaded
 
   val jfxSettings = Seq(
-    mainClass in (Compile, run) <<= JFX.mainClass map(x => x),
+    mainClass in (Compile, run) <<= JFX.mainClass map (x => x),
     (unmanagedClasspath in Compile) <<= (unmanagedClasspath in Compile, JFX.addJfxrtToClasspath, JFX.jfxrt) map { (cp, add, jfxrt) => if (add) cp :+ Attributed.blank(file(jfxrt getOrElse sys.error("Path to jfxrt.jar not defined."))) else cp },
     (unmanagedClasspath in Runtime) <<= (unmanagedClasspath in Runtime, JFX.addJfxrtToClasspath, JFX.jfxrt) map { (cp, add, jfxrt) => if (add) cp :+ Attributed.blank(file(jfxrt getOrElse sys.error("Path to jfxrt.jar not defined."))) else cp },
     autoScalaLibrary <<= JFX.javaOnly(x => !x),
@@ -301,5 +311,5 @@ object JavaFXPlugin extends Plugin {
     fork in run := true,
     JFX.packageJavaFx <<= packageJavaFxTask,
     JFX.deploy <<= deployTask,
-    jfx <<= (JFX.paths, JFX.mainClass, JFX.output, JFX.template, JFX.dimensions, JFX.permissions, JFX.info, JFX.signing) apply { new JFX(_, _, _, _, _,_, _, _) })
+    jfx <<= (JFX.paths, JFX.mainClass, JFX.output, JFX.template, JFX.dimensions, JFX.permissions, JFX.info, JFX.signing, JFX.misc) apply { new JFX(_, _, _, _, _, _, _, _, _) })
 }
