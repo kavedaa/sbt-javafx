@@ -47,7 +47,7 @@ There are two steps to enabling the plugin:
 Adding the following line to an `.sbt` file in the `project` directory:
 
 ```scala
-addSbtPlugin("no.vedaadata" %% "sbt-javafx" % "0.5-SNAPSHOT")
+addSbtPlugin("no.vedaadata" %% "sbt-javafx" % "0.5")
 ```
 
 (This makes the plugin available to your project.)
