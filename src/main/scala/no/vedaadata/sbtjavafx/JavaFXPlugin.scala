@@ -91,9 +91,8 @@ object JavaFXPlugin extends Plugin {
     val templateDestFile = SettingKey[Option[String]](prefixed("template-dest-file"), "HTML template output file.")
     val placeholderId = SettingKey[String](prefixed("placeholder-id"), "HTML template placeholder id.")
 
-    val dimensions = SettingKey[Dimensions](prefixed("dimensions"), "JavaFX dimensions settings.")
+    val info = SettingKey[Info](prefixed("info"),"Application info settings")
     
-    val info = SettingKey[Info](prefixed("info"),"Application info settings")   
     val vendor = SettingKey[String](prefixed("vendor"), "Application vendor")
     val title = SettingKey[String](prefixed("title"), "Application title")   
     val category = SettingKey[String](prefixed("category"), "Application category")
@@ -101,6 +100,8 @@ object JavaFXPlugin extends Plugin {
     val copyright = SettingKey[String](prefixed("copyright"), "Application copyright")
     val license = SettingKey[String](prefixed("license"), "Application license")
 
+    val dimensions = SettingKey[Dimensions](prefixed("dimensions"), "JavaFX dimensions settings.")
+    
     val width = SettingKey[Int](prefixed("width"), "JavaFX application width.")
     val height = SettingKey[Int](prefixed("height"), "JavaFX application height.")
     val embeddedWidth = SettingKey[String](prefixed("embedded-width"), "JavaFX applet width.")
@@ -194,9 +195,6 @@ object JavaFXPlugin extends Plugin {
               </fx:resources>
             </fx:jar>
             {
-              
-
-
               if (jfx.permissions.elevated) {
                 <fx:signjar destdir={ distDir.getAbsolutePath } keyStore={ jfx.signing.keyStore map (_.getAbsolutePath) getOrElse sys.error("fx-key-store is not defined") } storePass={ jfx.signing.storePass getOrElse sys.error("fx-store-pass is not defined") } alias={ jfx.signing.alias getOrElse sys.error("fx-alias is not defined") } keyPass={ jfx.signing.keyPass getOrElse sys.error("fx-key-pass is not defined") } storeType={ jfx.signing.storeType getOrElse "jks" }>
                   <fx:fileset dir={ distDir.getAbsolutePath }/>
