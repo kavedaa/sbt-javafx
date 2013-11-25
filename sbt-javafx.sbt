@@ -6,9 +6,11 @@ version := "0.6-SNAPSHOT"
 
 scalaVersion := "2.10.2"
 
-crossScalaVersions := Seq("2.9.1", "2.9.2", "2.9.3", "2.10.0", "2.10.1", "2.10.2")
-
 sbtPlugin := true
+
+crossBuildingSettings
+
+CrossBuilding.crossSbtVersions := Seq("0.11.2", "0.11.3", "0.12", "0.13")
 
 libraryDependencies += "org.apache.ant" % "ant" % "1.8.2"
 
