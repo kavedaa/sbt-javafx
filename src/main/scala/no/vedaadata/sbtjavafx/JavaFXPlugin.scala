@@ -36,7 +36,7 @@ case class JFX(
   signing: Signing,
   misc: Misc)
 
-case class Paths(devKit: Option[DevKit], jfxrt: Option[String], antLib: Option[String])
+case class Paths(devKit: Option[DevKit], jfxrt: Option[String], antLib: Option[String], pkgResourcesDir: Option[String])
 
 case class Output(nativeBundles: String, artifactBaseName: (String, ModuleID, Artifact) => String, artifactBaseNameValue: String, deployDir: Option[String])
 
@@ -69,6 +69,8 @@ object JavaFXPlugin extends Plugin {
     val jfxrt = SettingKey[Option[String]](prefixed("jfxrt"), "Path to jfxrt.jar.")
 
     val antLib = SettingKey[Option[String]](prefixed("ant-lib"), "Path to ant-javafx.jar.")
+    
+    val pkgResourcesDir = SettingKey[Option[String]](prefixed("pkg-resources-dir"), "Path containing the `package/{windows,macosx,linux}` directory, to be added to the ant-javafx.jar classpath for drop-in resources. See https://blogs.oracle.com/talkingjavadeployment/entry/native_packaging_cookbook_using_drop for details.")
 
     val paths = SettingKey[Paths](prefixed("paths"), "JavaFX paths settings.")
 
@@ -144,11 +146,15 @@ object JavaFXPlugin extends Plugin {
       val antLib = jfx.paths.antLib getOrElse sys.error("Path to ant-javafx.jar not defined.")
 
       if (!file(antLib).exists) sys.error(antLib + " does not exist.")
-
+      
       //	Setup paths and delete anything left over from previous build
 
       import IO._
-
+      
+      val pkgResourcesDir = jfx.paths.pkgResourcesDir getOrElse baseDirectory.getAbsolutePath
+      
+      assertDirectory(file(pkgResourcesDir))
+      
       val libDir = crossTarget / "lib"
       val distDir = crossTarget / jfx.output.artifactBaseNameValue
 
@@ -185,7 +191,7 @@ object JavaFXPlugin extends Plugin {
       val antBuildXml =
         <project name={ name } default="default" basedir="." xmlns:fx="javafx:com.sun.javafx.tools.ant">
           <target name="default">
-            <taskdef resource="com/sun/javafx/tools/ant/antlib.xml" uri="javafx:com.sun.javafx.tools.ant" classpath={ antLib }/>
+            <taskdef resource="com/sun/javafx/tools/ant/antlib.xml" uri="javafx:com.sun.javafx.tools.ant" classpath={ s"${pkgResourcesDir}:${antLib}" }/>
             <fx:application id="fxApp" name={ name } mainClass={ jfx.mainClass getOrElse sys.error("JFX.mainClass not defined") }/>
             <fx:jar destfile={ jarFile.getAbsolutePath }>
               <fx:application refid="fxApp"/>
@@ -261,7 +267,7 @@ object JavaFXPlugin extends Plugin {
     JFX.devKit := None,
     JFX.jfxrt <<= JFX.devKit(_ map DevKit.jfxrt),
     JFX.antLib <<= JFX.devKit(_ map DevKit.antLib),
-    JFX.paths <<= (JFX.devKit, JFX.jfxrt, JFX.antLib) apply Paths.apply,
+    JFX.paths <<= (JFX.devKit, JFX.jfxrt, JFX.antLib, JFX.pkgResourcesDir) apply Paths.apply,
     JFX.addJfxrtToClasspath <<= JFX.devKit(_ map (devKit => !DevKit.isJdk(devKit)) getOrElse false),
     JFX.mainClass := None,
     JFX.javaOnly := false,
