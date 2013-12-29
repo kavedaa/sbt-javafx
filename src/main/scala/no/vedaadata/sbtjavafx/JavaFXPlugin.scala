@@ -191,7 +191,7 @@ object JavaFXPlugin extends Plugin {
       val antBuildXml =
         <project name={ name } default="default" basedir="." xmlns:fx="javafx:com.sun.javafx.tools.ant">
           <target name="default">
-            <taskdef resource="com/sun/javafx/tools/ant/antlib.xml" uri="javafx:com.sun.javafx.tools.ant" classpath={ s"${pkgResourcesDir}:${antLib}" }/>
+            <taskdef resource="com/sun/javafx/tools/ant/antlib.xml" uri="javafx:com.sun.javafx.tools.ant" classpath={ pkgResourcesDir + ":" + antLib }/>
             <fx:application id="fxApp" name={ name } mainClass={ jfx.mainClass getOrElse sys.error("JFX.mainClass not defined") }/>
             <fx:jar destfile={ jarFile.getAbsolutePath }>
               <fx:application refid="fxApp"/>
