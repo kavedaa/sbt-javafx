@@ -267,6 +267,7 @@ object JavaFXPlugin extends Plugin {
     JFX.devKit := None,
     JFX.jfxrt <<= JFX.devKit(_ map DevKit.jfxrt),
     JFX.antLib <<= JFX.devKit(_ map DevKit.antLib),
+    JFX.pkgResourcesDir := None,
     JFX.paths <<= (JFX.devKit, JFX.jfxrt, JFX.antLib, JFX.pkgResourcesDir) apply Paths.apply,
     JFX.addJfxrtToClasspath <<= JFX.devKit(_ map (devKit => !DevKit.isJdk(devKit)) getOrElse false),
     JFX.mainClass := None,
