@@ -1,6 +1,6 @@
 # sbt-javafx
 
-**sbt-javafx** is a plugin for [SBT](http://www.scala-sbt.org/) (Simple Build Tool) for packaging [JavaFX](http://www.oracle.com/technetwork/java/javafx/overview/index.html) applications. It can be used to run, package, and deploy both Scala- and Java-based applications.
+**sbt-javafx** is a plugin for [SBT][sbt] (Simple Build Tool) for packaging [JavaFX][javafx] applications. It can be used to run, package, and deploy both Scala- and Java-based applications.
 
 ## Quick start
 
@@ -34,7 +34,7 @@ This is mostly what you need to know. For more details, read on below.
 
 ## Examples
 
-Instead of, or in addition to, reading the rest of this document, you might want to take a look at some [examples of using the plugin](https://github.com/kavedaa/sbt-javafx-examples).
+Instead of, or in addition to, reading the rest of this document, you might want to take a look at some [examples of using the plugin][sbt-javafx-examples].
 
 Note that these examples lack the `JFX.devKit` setting shown above, since this is of course specific to the system they might be built on.
 
@@ -208,11 +208,11 @@ A typical value for `bundleType` is one of:
 * `rpm` - Redhat Package Manager file (Linux only)
 
 
-See the [JavaFX packaging documentation](http://docs.oracle.com/javafx/2/deployment/self-contained-packaging.htm) for possible values and further information.
+See the [JavaFX Packaging][javafx-packaging] documentation for possible values and further information.
 
 ### Drop-in Packaging Resources
 
-As described in the article [Native Packaging Cookbook](https://blogs.oracle.com/talkingjavadeployment/entry/native_packaging_cookbook_using_drop), the native installers generated for each platform may be customized with modified versions of files from the installer templates. The Oracle-provided `fx:deploy` task in `ant-javafx.jar` is not very flexible with regard to this specification of these "drop-in" resources, so tweaking an installer can be frustrating the first time around. Any encountered problems are likely to be associated with mis-named or mis-located files, and *not* a problem with **sbt-javafx**. For an example build configuration, see the `example-packaging` source in the [examples repository](https://github.com/kavedaa/sbt-javafx-examples).
+As described in the article [Native Packaging Cookbook][packaging-cookbook], the native installers generated for each platform may be customized with modified versions of files from the installer templates. The Oracle-provided `fx:deploy` task in `ant-javafx.jar` is not very flexible with regard to this specification of these "drop-in" resources, so tweaking an installer can be frustrating the first time around. Any encountered problems are likely to be associated with mis-named or mis-located files, and *not* a problem with **sbt-javafx**. For an example build configuration, see the `example-packaging` source in the [examples repository][sbt-javafx-examples].
 
 At the heart of the process of specifying the location of drop-in resources is ensuring the classpath of the ClassLoader executing `fx:deploy` can resolve the desired resources. The **sbt-javafx** plugin provides the `JFX.pkgResourcesDir` setting for prepending a path to the `fx:deploy` classpath (which is *not* the same as the SBT classpath or the `scalac` classpath).
 
@@ -238,7 +238,7 @@ This means that SBT must be started with the JDK version of the JRE. This can be
 
 ### Application info
 
-The following keys allow specification of additional metadata for the installer and application manifest. Details are provided in the [fx:info JavaFX Ant Task Reference](http://docs.oracle.com/javafx/2/deployment/javafx_ant_task_reference.htm#CIAIEJHG).
+The following keys allow specification of additional metadata for the installer and application manifest. Details are provided in the [fx:info JavaFX Ant Task Reference][fx:info].
 
 ```scala
 JFX.vendor := "ACME Inc."
@@ -256,7 +256,7 @@ JFX.license := "ACME"
 
 ### Signing
 
-Application component signing may be required for JNLP, Applet, and native installer deployments, depending on platform and security settings. See the [fx:signjar JavaFX Ant Task Reference](http://docs.oracle.com/javafx/2/deployment/javafx_ant_task_reference.htm#CIADDAEE) for details.
+Application component signing may be required for JNLP, Applet, and native installer deployments, depending on platform and security settings. See the [fx:signjar JavaFX Ant Task Reference][fx:signjar] for details.
 
 
 ```scala
@@ -272,3 +272,10 @@ JFX.keyPass := Some("mykeypass")
 ```
 
 
+[sbt]: http://www.scala-sbt.org/
+[sbt-javafx-examples]: https://github.com/kavedaa/sbt-javafx-examples
+[javafx]: http://www.oracle.com/technetwork/java/javafx/overview/index.html
+[javafx-packaging]: http://docs.oracle.com/javafx/2/deployment/self-contained-packaging.htm
+[packaging-cookbook]: https://blogs.oracle.com/talkingjavadeployment/entry/native_packaging_cookbook_using_drop
+[fx:info]: http://docs.oracle.com/javafx/2/deployment/javafx_ant_task_reference.htm#CIAIEJHG
+[fx:signjar]: http://docs.oracle.com/javafx/2/deployment/javafx_ant_task_reference.htm#CIADDAEE
