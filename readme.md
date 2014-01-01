@@ -1,10 +1,10 @@
 # sbt-javafx
 
-sbt-javafx is a plugin for [SBT](http://www.scala-sbt.org/) (Simple Build Tool) for packaging JavaFX applications. It can be used to run and package both Scala- and Java-based applications.
+**sbt-javafx** is a plugin for [SBT](http://www.scala-sbt.org/) (Simple Build Tool) for packaging [JavaFX](http://www.oracle.com/technetwork/java/javafx/overview/index.html) applications. It can be used to run, package, and deploy both Scala- and Java-based applications.
 
 ## Quick start
 
-sbt-javafx is available from Maven Central with a groupId of `no.vedaadata` and an artifactId of `sbt-javafx`.
+**sbt-javafx** is available from Maven Central with a groupId of `no.vedaadata` and an artifactId of `sbt-javafx`.
 
 To use it in an SBT project, add an `.sbt` file (e.g. `plugins.sbt`) to the project's `project` directory, with the following content:  
 
@@ -64,8 +64,8 @@ jfxSettings
 
 Two files from the JavaFX SDK are needed by the plugin:
 
-* jfxrt.jar (for compiling and running)
-* ant-javafx.jar (for packaging)
+* `jfxrt.jar` (for compiling and running)
+* `ant-javafx.jar` (for packaging)
 
 The location of the these can be configured in several different ways:
 
@@ -120,7 +120,7 @@ SBT is not able to launch a `javafx.application.Application` on its own. It need
 
 By default, the plugin will set SBT's `mainClass` to the same value as `JFX.mainClass`. This makes it simple to add the necessary launcher code.
 
-### Scala-based applications
+### Scala-centric applications
 
 You can use a companion object with a `main` method that has code to launch the JavaFX application, e.g.:
 
@@ -138,7 +138,7 @@ If you for some reason would want to name this differently, you can override SBT
 mainClass in (Compile, run) := Some("some.other.Launcher")
 ```
 
-### Java-based applications
+### Java-centric applications
 
 You can add a static `main` method to your JavaFX application class, e.g.:
 
@@ -153,6 +153,18 @@ public class MyJavaFXApplication extends Application {
 	// rest of application here
 }
 ```
+
+
+### Java-only applications
+
+It is very much possible to use the plugin to package applications written only in Java. If your application uses no Scala code at all, you might want to use the `javaOnly` setting:
+
+```scala
+JFX.javaOnly := true
+```
+
+This is a convenience setting that excludes the standard Scala library from being packaged with the application, and makes the output path a bit simpler, so that it becomes e.g. `target/my-javafx-application-1.0/`.
+
 
 ## Packaging
 
@@ -198,37 +210,54 @@ A typical value for `bundleType` is one of:
 
 See the [JavaFX packaging documentation](http://docs.oracle.com/javafx/2/deployment/self-contained-packaging.htm) for possible values and further information.
 
-#### Drop-in Resources
+### Drop-in Packaging Resources
 
-As described in the [Native Packaging Cookbook](https://blogs.oracle.com/talkingjavadeployment/entry/native_packaging_cookbook_using_drop), the native installers generated for each platform may be customized with files copied from the default installer templates (as reported when `verbose="true"` is passed to the `ant deploy` task), and placed in the classpath for the `ClassLoader` associated with `ant-javafx.jar`. This classpath should contain a folder called `package`, where the `deploy` task looks for files with project- and platform-specific files. See the Oracle for specifics, but the base structure is `package/{macosx,windows,linux}/[drop-in-resources]`.
+As described in the article [Native Packaging Cookbook](https://blogs.oracle.com/talkingjavadeployment/entry/native_packaging_cookbook_using_drop), the native installers generated for each platform may be customized with modified versions of files from the installer templates. The Oracle-provided `fx:deploy` task in `ant-javafx.jar` is not very flexible with regard to this specification of these "drop-in" resources, so tweaking an installer can be frustrating the first time around. Any encountered problems are likely to be associated with mis-named or mis-located files, and *not* a problem with **sbt-javafx**. For an example build configuration, see the `example-packaging` source in the [examples repository](https://github.com/kavedaa/sbt-javafx-examples).
 
-The `JFX.pkgResourcesDir` setting is provided for adding a path to this classpath. For example, if a custom `Info.plist` file for MacOS X is defined in `src/main/resourcespackage/macosx/Info.plist`, the following setting would make it visible to the `deploy` task:
+At the heart of the process of specifying the location of drop-in resources is ensuring the classpath of the ClassLoader executing `fx:deploy` can resolve the desired resources. The **sbt-javafx** plugin provides the `JFX.pkgResourcesDir` setting for prepending a path to the `fx:deploy` classpath (which is *not* the same as the SBT classpath or the `scalac` classpath).
+
+For example, if a custom `Info.plist` file for MacOS X is defined in `src/main/resources/package/macosx/Info.plist`, the following setting would make it visible to the `fx:deploy` ant task:
 
 ```scala
 JFX.pkgResourcesDir := Some(baseDirectory.value + "/src/main/resources")
 ```
 
-The Oracle-provided `ant-javafx.jar` is not very flexible with regard to paths to drop-in resources, so any encountered problems are likely to be associated with mis-named or mis-located files. To debug the packaging process, set `JFX.verbose := true` in your `build.sbt` file, run `sbt deploy` at least once, and then run `ant` against the generated `target/scala-x.yz/build.xml` file (i.e. `build.xml` in `crossTarget`). Running `ant` with the `deploy` task in verbose mode directly simplifies the debugging process when your drop-in resources aren't being picked up by `ant-javafx.jar`.
+Note that the placement of `Info.plist` in `package/macosx` is a requirement imposed by `fx:deploy`, not **sbt-javafx**.
 
-#### Using the correct Java version
+When the `fx:deploy` ant task is run with attribute `verbose="true"`, a list of customizable files is reported to the ant console, and defaults saved to a temporary directory for copying. If customized versions of these files are placed in a specific location in the classpath for `ant-javafx.jar`'s ClassLoader. This classpath should contain a folder called `package`. This is where the `fx:deploy` task looks for files with project- and platform-specific resource files. See the Oracle docs for specifics, but the basic structure is `package/{macosx,windows,linux}/[drop-in-resources]`.
 
-Self-contained applications must be packaged using the JDK version of the JRE and not the stand-alone JRE. (If you have installed the JDK you will probably have both.) If you use the JRE version, you will get an error message saying "jvm.dll is not found" (on Windows, probably similar on other platforms).
+To debug the packaging process, set `JFX.verbose := true` in your `build.sbt` file, run `sbt package-javafx` at least once, and then run `ant` against the generated `target/scala-x.yz/build.xml` file (i.e. value of `crossTarget.value + "/build.xml"`). Running `ant` with the `fx:deploy` task in verbose mode simplifies the debugging process when your drop-in resources aren't being picked up by `ant-javafx.jar`, and helps understand what additional resources might be customized. As mentioned, the `fx:deploy` task is fussy about names and locations of these resource files. For example, the name of application replacement icons have to match application name, and the `package/{os-name}/` structure is required.
 
-This means that SBT must be started with the JDK version of the JRE. This can be assured by setting JAVA_HOME to the correct path, either globally or within SBT's `sbt.bat` startup file.
+## Using the correct Java version
 
-### Java-only applications
+Self-contained applications must be packaged using the JDK version of the JRE and not the stand-alone JRE. (On Windows, if you have installed the JDK you will probably have both.) If you attempt to use the JRE version, you will get an error message saying "jvm.dll is not found".
 
-It is very much possible to use the plugin to package applications written in Java. If your application uses no Scala code at all, you might want to use the `javaOnly` setting:
-
-```scala
-JFX.javaOnly := true
-```
-
-This is a convenience setting that excludes the standard Scala library from being packaged with the application, and makes the output path a bit simpler, so that it becomes e.g. `target/my-javafx-application-1.0/`.
+This means that SBT must be started with the JDK version of the JRE. This can be assured by setting `JAVA_HOME` to the correct path, either globally or within SBT's `sbt.bat` startup file. Another option on Windows is to uninstall the JRE and ensure `JAVA_HOME` and applicable `PATH` entries point to the JDK binaries.
 
 ## Other settings
 
+### Application info
+
+The following keys allow specification of additional metadata for the installer and application manifest. Details are provided in the [fx:info JavaFX Ant Task Reference](http://docs.oracle.com/javafx/2/deployment/javafx_ant_task_reference.htm#CIAIEJHG).
+
+```scala
+JFX.vendor := "ACME Inc."
+
+JFX.title := "Rocket Launcher"
+
+JFX.category := "Mission critical"
+
+JFX.description := "Launches rockets"
+
+JFX.copyright := "ACME 2013"
+
+JFX.license := "ACME"
+```
+
 ### Signing
+
+Application component signing may be required for JNLP, Applet, and native installer deployments, depending on platform and security settings. See the [fx:signjar JavaFX Ant Task Reference](http://docs.oracle.com/javafx/2/deployment/javafx_ant_task_reference.htm#CIADDAEE) for details.
+
 
 ```scala
 JFX.elevated := true
@@ -242,18 +271,4 @@ JFX.alias := Some("myalias")
 JFX.keyPass := Some("mykeypass")
 ```
 
-### Application info
 
-```scala
-JFX.vendor := "ACME Inc."
-
-JFX.title := "Rocket Launcher"   
-
-JFX.category := "Mission critical"
-
-JFX.description := "Launches rockets"
-
-JFX.copyright := "ACME 2013"
-
-JFX.license := "ACME"
-```
