@@ -2,8 +2,8 @@
 
 Two files from the JavaFX SDK are needed by the plugin:
 
-* jfxrt.jar (for compiling and running)
-* ant-javafx.jar (for packaging)
+* `jfxrt.jar` (for compiling and running)
+* `ant-javafx.jar` (for packaging)
 
 The location of the these can be configured in several different ways:
 

@@ -4,7 +4,7 @@ SBT is not able to launch a `javafx.application.Application` on its own. It need
 
 By default, the plugin will set SBT's `mainClass` to the same value as `JFX.mainClass`. This makes it simple to add the necessary launcher code.
 
-### Scala-based applications
+### Scala-centric applications
 
 You can use a companion object with a `main` method that has code to launch the JavaFX application, e.g.:
 
@@ -22,7 +22,7 @@ If you for some reason would want to name this differently, you can override SBT
 mainClass in (Compile, run) := Some("some.other.Launcher")
 ```
 
-### Java-based applications
+### Java-centric applications
 
 You can add a static `main` method to your JavaFX application class, e.g.:
 
@@ -38,3 +38,12 @@ public class MyJavaFXApplication extends Application {
 }
 ```
 
+### Java-only applications
+
+It is very much possible to use the plugin to package applications written in Java. If your application uses no Scala code at all, you might want to use the `javaOnly` setting:
+
+```scala
+JFX.javaOnly := true
+```
+
+This is a convenience setting that excludes the standard Scala library from being packaged with the application, and makes the output path a bit simpler, so that it becomes e.g. `target/my-javafx-application-1.0/`.
