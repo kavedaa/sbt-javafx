@@ -42,7 +42,7 @@ A typical value for `bundleType` is one of:
 
 See the [JavaFX packaging documentation](http://docs.oracle.com/javafx/2/deployment/self-contained-packaging.htm) for possible values and further information.
 
-### Drop-in Packaging Resources
+#### Drop-in Packaging Resources
 
 As described in the article [Native Packaging Cookbook](https://blogs.oracle.com/talkingjavadeployment/entry/native_packaging_cookbook_using_drop), the native installers generated for each platform may be customized with modified versions of files from the installer templates. The Oracle-provided `fx:deploy` task in `ant-javafx.jar` is not very flexible with regard to this specification of these "drop-in" resources, so tweaking an installer can be frustrating the first time around. Any encountered problems are likely to be associated with mis-named or mis-located files, and *not* a problem with **sbt-javafx**. For an example build configuration, see the `example-packaging` source in the [examples repository](https://github.com/kavedaa/sbt-javafx-examples).
 
@@ -60,8 +60,18 @@ When the `fx:deploy` ant task is run with attribute `verbose="true"`, a list of 
 
 To debug the packaging process, set `JFX.verbose := true` in your `build.sbt` file, run `sbt package-javafx` at least once, and then run `ant` against the generated `target/scala-x.yz/build.xml` file (i.e. value of `crossTarget.value + "/build.xml"`). Running `ant` with the `fx:deploy` task in verbose mode simplifies the debugging process when your drop-in resources aren't being picked up by `ant-javafx.jar`, and helps understand what additional resources might be customized. As mentioned, the `fx:deploy` task is fussy about names and locations of these resource files. For example, the name of application replacement icons have to match application name, and the `package/{os-name}/` structure is required.
 
-## Using the correct Java version
+#### Using the correct Java version
 
 Self-contained applications must be packaged using the JDK version of the JRE and not the stand-alone JRE. (On Windows, if you have installed the JDK you will probably have both.) If you attempt to use the JRE version, you will get an error message saying "jvm.dll is not found".
 
 This means that SBT must be started with the JDK version of the JRE. This can be assured by setting `JAVA_HOME` to the correct path, either globally or within SBT's `sbt.bat` startup file. Another option on Windows is to uninstall the JRE and ensure `JAVA_HOME` and applicable `PATH` entries point to the JDK binaries.
+
+### Java-only applications
+
+It is very much possible to use the plugin to package applications written in Java. If your application uses no Scala code at all, you might want to use the `javaOnly` setting:
+
+```scala
+JFX.javaOnly := true
+```
+
+This is a convenience setting that excludes the standard Scala library from being packaged with the application, and makes the output path a bit simpler, so that it becomes e.g. `target/my-javafx-application-1.0/`.

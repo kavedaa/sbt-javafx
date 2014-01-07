@@ -37,13 +37,3 @@ public class MyJavaFXApplication extends Application {
 	// rest of application here
 }
 ```
-
-### Java-only applications
-
-It is very much possible to use the plugin to package applications written in Java. If your application uses no Scala code at all, you might want to use the `javaOnly` setting:
-
-```scala
-JFX.javaOnly := true
-```
-
-This is a convenience setting that excludes the standard Scala library from being packaged with the application, and makes the output path a bit simpler, so that it becomes e.g. `target/my-javafx-application-1.0/`.
