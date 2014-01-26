@@ -200,9 +200,9 @@ object JavaFXPlugin extends Plugin {
                 </fx:csstobin>
               }
             }
-            <fx:application id="fxApp" name={ name } mainClass={ jfx.mainClass getOrElse sys.error("JFX.mainClass not defined") }/>
+            <fx:application id={ name } name={ name } mainClass={ jfx.mainClass getOrElse sys.error("JFX.mainClass not defined") }/>
             <fx:jar destfile={ jarFile.getAbsolutePath }>
-              <fx:application refid="fxApp"/>
+              <fx:application refid={ name }/>
               <fx:fileset dir={ classDir.getAbsolutePath }/>
               <fx:resources>
                 { if (libJars.nonEmpty) <fx:fileset dir={ crossTarget.getAbsolutePath } includes="lib/*.jar"/> }
@@ -223,7 +223,7 @@ object JavaFXPlugin extends Plugin {
               }
             }
             <fx:deploy width={ jfx.dimensions.width.toString } height={ jfx.dimensions.height.toString } embeddedWidth={ jfx.dimensions.embeddedWidth } embeddedHeight={ jfx.dimensions.embeddedHeight } outdir={ distDir.getAbsolutePath } outfile={ jfx.output.artifactBaseNameValue } placeholderId={ jfx.template.placeholderId } nativeBundles={ jfx.output.nativeBundles } verbose={ jfx.misc.verbose.toString }>
-              <fx:application refid="fxApp"/>
+              <fx:application refid={ name }/>
               <fx:info vendor={ jfx.info.vendor } title={ jfx.info.title } category={ jfx.info.category } description={ jfx.info.description } copyright={ jfx.info.copyright } license={ jfx.info.license }></fx:info>
               <fx:resources>
                 <fx:fileset dir={ distDir.getAbsolutePath } includes={ jfx.output.artifactBaseNameValue + ".jar" }/>
