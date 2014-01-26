@@ -48,7 +48,7 @@ case class Signing(keyStore: Option[File], storePass: Option[String], alias: Opt
 
 case class Dimensions(width: Int, height: Int, embeddedWidth: String, embeddedHeight: String)
 
-case class Misc(verbose: Boolean)
+case class Misc(cssToBin: Boolean, verbose: Boolean)
 
 case class Info(vendor: String, title: String, category: String, copyright: String, description: String, license: String)
 
@@ -69,7 +69,7 @@ object JavaFXPlugin extends Plugin {
     val jfxrt = SettingKey[Option[String]](prefixed("jfxrt"), "Path to jfxrt.jar.")
 
     val antLib = SettingKey[Option[String]](prefixed("ant-lib"), "Path to ant-javafx.jar.")
-    
+
     val pkgResourcesDir = SettingKey[Option[String]](prefixed("pkg-resources-dir"), "Path containing the `package/{windows,macosx,linux}` directory, to be added to the ant-javafx.jar classpath for drop-in resources. See https://blogs.oracle.com/talkingjavadeployment/entry/native_packaging_cookbook_using_drop for details.")
 
     val paths = SettingKey[Paths](prefixed("paths"), "JavaFX paths settings.")
@@ -93,17 +93,17 @@ object JavaFXPlugin extends Plugin {
     val templateDestFile = SettingKey[Option[String]](prefixed("template-dest-file"), "HTML template output file.")
     val placeholderId = SettingKey[String](prefixed("placeholder-id"), "HTML template placeholder id.")
 
-    val info = SettingKey[Info](prefixed("info"),"Application info settings")
-    
+    val info = SettingKey[Info](prefixed("info"), "Application info settings")
+
     val vendor = SettingKey[String](prefixed("vendor"), "Application vendor")
-    val title = SettingKey[String](prefixed("title"), "Application title")   
+    val title = SettingKey[String](prefixed("title"), "Application title")
     val category = SettingKey[String](prefixed("category"), "Application category")
     val description = SettingKey[String](prefixed("description"), "Application description")
     val copyright = SettingKey[String](prefixed("copyright"), "Application copyright")
     val license = SettingKey[String](prefixed("license"), "Application license")
 
     val dimensions = SettingKey[Dimensions](prefixed("dimensions"), "JavaFX dimensions settings.")
-    
+
     val width = SettingKey[Int](prefixed("width"), "JavaFX application width.")
     val height = SettingKey[Int](prefixed("height"), "JavaFX application height.")
     val embeddedWidth = SettingKey[String](prefixed("embedded-width"), "JavaFX applet width.")
@@ -124,6 +124,7 @@ object JavaFXPlugin extends Plugin {
 
     val misc = SettingKey[Misc](prefixed("misc"), "Misc JavaFX settings.")
 
+    val cssToBin = SettingKey[Boolean](prefixed("css-to-bin"), "Convert CSS files to binary.")
     val verbose = SettingKey[Boolean](prefixed("verbose"), "Enable verbose output from packager.")
 
     val packageJavaFx = TaskKey[Unit]("package-javafx", "Packages a JavaFX application.")
@@ -146,15 +147,15 @@ object JavaFXPlugin extends Plugin {
       val antLib = jfx.paths.antLib getOrElse sys.error("Path to ant-javafx.jar not defined.")
 
       if (!file(antLib).exists) sys.error(antLib + " does not exist.")
-      
+
       //	Setup paths and delete anything left over from previous build
 
       import IO._
-      
+
       val pkgResourcesDir = jfx.paths.pkgResourcesDir getOrElse baseDirectory.getAbsolutePath
-      
+
       assertDirectory(file(pkgResourcesDir))
-      
+
       val libDir = crossTarget / "lib"
       val distDir = crossTarget / jfx.output.artifactBaseNameValue
 
@@ -192,6 +193,13 @@ object JavaFXPlugin extends Plugin {
         <project name={ name } default="default" basedir="." xmlns:fx="javafx:com.sun.javafx.tools.ant">
           <target name="default">
             <taskdef resource="com/sun/javafx/tools/ant/antlib.xml" uri="javafx:com.sun.javafx.tools.ant" classpath={ pkgResourcesDir + ":" + antLib }/>
+            {
+              if (jfx.misc.cssToBin) {
+                <fx:csstobin outdir={ classDir.getAbsolutePath }>
+                  <fileset dir={ classDir.getAbsolutePath } includes="**/*.css"/>
+                </fx:csstobin>
+              }
+            }
             <fx:application id="fxApp" name={ name } mainClass={ jfx.mainClass getOrElse sys.error("JFX.mainClass not defined") }/>
             <fx:jar destfile={ jarFile.getAbsolutePath }>
               <fx:application refid="fxApp"/>
@@ -216,8 +224,7 @@ object JavaFXPlugin extends Plugin {
             }
             <fx:deploy width={ jfx.dimensions.width.toString } height={ jfx.dimensions.height.toString } embeddedWidth={ jfx.dimensions.embeddedWidth } embeddedHeight={ jfx.dimensions.embeddedHeight } outdir={ distDir.getAbsolutePath } outfile={ jfx.output.artifactBaseNameValue } placeholderId={ jfx.template.placeholderId } nativeBundles={ jfx.output.nativeBundles } verbose={ jfx.misc.verbose.toString }>
               <fx:application refid="fxApp"/>
-              <fx:info vendor={ jfx.info.vendor } title={ jfx.info.title } category={ jfx.info.category } description={ jfx.info.description } copyright={jfx.info.copyright } license={ jfx.info.license }></fx:info>
-
+              <fx:info vendor={ jfx.info.vendor } title={ jfx.info.title } category={ jfx.info.category } description={ jfx.info.description } copyright={ jfx.info.copyright } license={ jfx.info.license }></fx:info>
               <fx:resources>
                 <fx:fileset dir={ distDir.getAbsolutePath } includes={ jfx.output.artifactBaseNameValue + ".jar" }/>
                 { if (libJars.nonEmpty) <fx:fileset dir={ crossTarget.getAbsolutePath } includes="lib/*.jar"/> }
@@ -295,15 +302,16 @@ object JavaFXPlugin extends Plugin {
     JFX.description := "",
     JFX.copyright := "",
     JFX.license := "",
-    JFX.info <<= (JFX.vendor, JFX.title, JFX.category, JFX.description, JFX. copyright, JFX.license) apply Info.apply,
+    JFX.info <<= (JFX.vendor, JFX.title, JFX.category, JFX.description, JFX.copyright, JFX.license) apply Info.apply,
     JFX.keyStore := None,
     JFX.storePass := None,
     JFX.alias := None,
     JFX.keyPass := None,
     JFX.storeType := None,
     JFX.signing <<= (JFX.keyStore, JFX.storePass, JFX.alias, JFX.keyPass, JFX.storeType) apply Signing.apply,
+    JFX.cssToBin := false,
     JFX.verbose := false,
-    JFX.misc <<= (JFX.verbose) apply Misc.apply)
+    JFX.misc <<= (JFX.cssToBin, JFX.verbose) apply Misc.apply)
 
   //	Settings that must be manually loaded
 
