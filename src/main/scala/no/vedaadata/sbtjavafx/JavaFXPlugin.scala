@@ -195,6 +195,9 @@ object JavaFXPlugin extends Plugin {
             <taskdef resource="com/sun/javafx/tools/ant/antlib.xml" uri="javafx:com.sun.javafx.tools.ant" classpath={ pkgResourcesDir + ":" + antLib }/>
             {
               if (jfx.misc.cssToBin) {
+                <delete>
+                  <fileset dir={ classDir.getAbsolutePath } includes="**/*.bss/"/>
+                </delete>
                 <fx:csstobin outdir={ classDir.getAbsolutePath }>
                   <fileset dir={ classDir.getAbsolutePath } includes="**/*.css"/>
                 </fx:csstobin>
