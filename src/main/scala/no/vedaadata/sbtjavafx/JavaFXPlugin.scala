@@ -196,7 +196,7 @@ object JavaFXPlugin extends Plugin {
             {
               if (jfx.misc.cssToBin) {
                 <delete>
-                  <fileset dir={ classDir.getAbsolutePath } includes="**/*.bss/"/>
+                  <fileset dir={ classDir.getAbsolutePath } includes="**/*.bss"/>
                 </delete>
                 <fx:csstobin outdir={ classDir.getAbsolutePath }>
                   <fileset dir={ classDir.getAbsolutePath } includes="**/*.css"/>
@@ -274,7 +274,7 @@ object JavaFXPlugin extends Plugin {
   //	Settings that are automatically loaded (as defaults)
 
   override val settings = Seq(
-    JFX.devKit := None,
+    JFX.devKit := JFX.jdk(System.getProperty("java.home") + "/.."),
     JFX.jfxrt <<= JFX.devKit(_ map DevKit.jfxrt),
     JFX.antLib <<= JFX.devKit(_ map DevKit.antLib),
     JFX.pkgResourcesDir := None,
