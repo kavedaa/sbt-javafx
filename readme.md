@@ -9,7 +9,7 @@ sbt-javafx is available from Maven Central with a groupId of `no.vedaadata` and 
 To use it in an SBT project, add an `.sbt` file (e.g. `plugins.sbt`) to the project's `project` directory, with the following content:  
 
 ```scala
-addSbtPlugin("no.vedaadata" %% "sbt-javafx" % "0.5")
+addSbtPlugin("no.vedaadata" %% "sbt-javafx" % "0.6")
 ```
 
 A minimal `.sbt` build file (e.g. `build.sbt`) could then look like this:
@@ -22,10 +22,6 @@ version := "1.0"
 jfxSettings
 
 JFX.mainClass := Some("mypackage.MyJavaFXApplication")
-
-JFX.devKit := JFX.jdk("C:/Program Files/Java/jdk1.7.0_07")
-
-JFX.addJfxrtToClasspath := true
 ```
 
 To package the application, simply run the `package-javafx` task.

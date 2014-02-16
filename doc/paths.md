@@ -1,11 +1,13 @@
-## Configuring paths to necessary JavaFX files
+## Customizing paths to necessary JavaFX files
 
 Two files from the JavaFX SDK are needed by the plugin:
 
 * `jfxrt.jar` (for compiling and running)
 * `ant-javafx.jar` (for packaging)
 
-The location of the these can be configured in several different ways:
+By default these will be found automatically by the plugin. 
+
+However it is possible to customize their location in different ways:
 
 ### Using JDK 7u6 or higher
 
@@ -21,7 +23,7 @@ For some reason though, even if it is included, jfxrt.jar is *not* added to the 
 JFX.addJfxrtToClasspath := true
 ```
 
-(With the longish name it might not seem so convenient, but this helps identify it as a temporary *workaround* that will hopefully no longer be needed when JavaFX becomes an official part of Java SE.) 
+(With the longish name it might not seem so convenient, but this helps identify it as a *workaround* needed for older (pre-8) Java versions.) 
 
 It is not necessary to add ant-javafx.jar to the classpath.
 
