@@ -309,6 +309,7 @@ object JavaFXPlugin extends Plugin {
     mainClass in (Compile, run) <<= JFX.mainClass map (x => x),
     (unmanagedClasspath in Compile) <<= (unmanagedClasspath in Compile, JFX.addJfxrtToClasspath, JFX.jfxrt) map { (cp, add, jfxrt) => if (add) cp :+ Attributed.blank(file(jfxrt getOrElse sys.error("Path to jfxrt.jar not defined."))) else cp },
     (unmanagedClasspath in Runtime) <<= (unmanagedClasspath in Runtime, JFX.addJfxrtToClasspath, JFX.jfxrt) map { (cp, add, jfxrt) => if (add) cp :+ Attributed.blank(file(jfxrt getOrElse sys.error("Path to jfxrt.jar not defined."))) else cp },
+    (unmanagedClasspath in Test) <<= (unmanagedClasspath in Test, JFX.addJfxrtToClasspath, JFX.jfxrt) map { (cp, add, jfxrt) => if (add) cp :+ Attributed.blank(file(jfxrt getOrElse sys.error("Path to jfxrt.jar not defined."))) else cp },
     autoScalaLibrary <<= JFX.javaOnly(x => !x),
     crossPaths <<= JFX.javaOnly(x => !x),
     fork in run := true,

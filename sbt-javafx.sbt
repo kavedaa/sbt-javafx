@@ -2,7 +2,7 @@ name := "sbt-javafx"
 
 organization := "no.vedaadata"
 
-version := "0.6"
+version := "0.6.1-SNAPSHOT"
 
 scalaVersion := "2.10.2"
 
