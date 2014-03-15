@@ -36,7 +36,7 @@ case class JFX(
   signing: Signing,
   misc: Misc)
 
-case class Paths(devKit: Option[DevKit], jfxrt: Option[String], antLib: Option[String], pkgResourcesDir: Option[String])
+case class Paths(devKit: Option[DevKit], jfxrt: Option[String], antLib: Option[String], pkgResourcesDir: String)
 
 case class Output(nativeBundles: String, artifactBaseName: (String, ModuleID, Artifact) => String, artifactBaseNameValue: String)
 
@@ -70,7 +70,7 @@ object JavaFXPlugin extends Plugin {
 
     val antLib = SettingKey[Option[String]](prefixed("ant-lib"), "Path to ant-javafx.jar.")
 
-    val pkgResourcesDir = SettingKey[Option[String]](prefixed("pkg-resources-dir"), "Path containing the `package/{windows,macosx,linux}` directory, to be added to the ant-javafx.jar classpath for drop-in resources. See https://blogs.oracle.com/talkingjavadeployment/entry/native_packaging_cookbook_using_drop for details.")
+    val pkgResourcesDir = SettingKey[String](prefixed("pkg-resources-dir"), "Path containing the `package/{windows,macosx,linux}` directory, to be added to the ant-javafx.jar classpath for drop-in resources. See https://blogs.oracle.com/talkingjavadeployment/entry/native_packaging_cookbook_using_drop for details.")
 
     val paths = SettingKey[Paths](prefixed("paths"), "JavaFX paths settings.")
 
@@ -149,7 +149,7 @@ object JavaFXPlugin extends Plugin {
 
       import IO._
 
-      val pkgResourcesDir = jfx.paths.pkgResourcesDir getOrElse baseDirectory.getAbsolutePath
+      val pkgResourcesDir = jfx.paths.pkgResourcesDir
 
       assertDirectory(file(pkgResourcesDir))
 
@@ -265,7 +265,7 @@ object JavaFXPlugin extends Plugin {
     JFX.devKit := JFX.jdk(System.getProperty("java.home") + "/.."),
     JFX.jfxrt <<= JFX.devKit(_ map DevKit.jfxrt),
     JFX.antLib <<= JFX.devKit(_ map DevKit.antLib),
-    JFX.pkgResourcesDir := None,
+    JFX.pkgResourcesDir <<= baseDirectory(d => (d / "src/deploy").getAbsolutePath),
     JFX.paths <<= (JFX.devKit, JFX.jfxrt, JFX.antLib, JFX.pkgResourcesDir) apply Paths.apply,
     JFX.addJfxrtToClasspath <<= JFX.devKit(_ map (devKit => !DevKit.isJdk(devKit)) getOrElse false),
     JFX.mainClass := None,

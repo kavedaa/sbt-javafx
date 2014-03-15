@@ -48,11 +48,13 @@ As described in the article [Native Packaging Cookbook](https://blogs.oracle.com
 
 At the heart of the process of specifying the location of drop-in resources is ensuring the classpath of the ClassLoader executing `fx:deploy` can resolve the desired resources. The **sbt-javafx** plugin provides the `JFX.pkgResourcesDir` setting for prepending a path to the `fx:deploy` classpath (which is *not* the same as the SBT classpath or the `scalac` classpath).
 
-For example, if a custom `Info.plist` file for MacOS X is defined in `src/main/resources/package/macosx/Info.plist`, the following setting would make it visible to the `fx:deploy` ant task:
+For example, if a custom `Info.plist` file for MacOS X is defined in `src/deploy/package/macosx/Info.plist`, the following setting would make it visible to the `fx:deploy` ant task:
 
 ```scala
-JFX.pkgResourcesDir := Some(baseDirectory.value + "/src/main/resources")
+JFX.pkgResourcesDir := baseDirectory.value + "/src/deploy"
 ```
+
+(This is also the default.)
 
 Note that the placement of `Info.plist` in `package/macosx` is a requirement imposed by `fx:deploy`, not **sbt-javafx**.
 
