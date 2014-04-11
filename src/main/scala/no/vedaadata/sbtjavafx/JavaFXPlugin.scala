@@ -50,7 +50,7 @@ case class Dimensions(width: Int, height: Int, embeddedWidth: String, embeddedHe
 
 case class Misc(cssToBin: Boolean, verbose: Boolean)
 
-case class Info(vendor: String, title: String, category: String, copyright: String, description: String, license: String)
+case class Info(vendor: String, title: String, appVersion: String, category: String, copyright: String, description: String, license: String)
 
 //	The plugin
 
@@ -100,6 +100,7 @@ object JavaFXPlugin extends Plugin {
     val description = SettingKey[String](prefixed("description"), "Application description")
     val copyright = SettingKey[String](prefixed("copyright"), "Application copyright")
     val license = SettingKey[String](prefixed("license"), "Application license")
+    val appVersion = SettingKey[String](prefixed("app-version"), "Application version specifier used in launcher and installer")
 
     val dimensions = SettingKey[Dimensions](prefixed("dimensions"), "JavaFX dimensions settings.")
 
@@ -124,7 +125,7 @@ object JavaFXPlugin extends Plugin {
     val misc = SettingKey[Misc](prefixed("misc"), "Misc JavaFX settings.")
 
     val cssToBin = SettingKey[Boolean](prefixed("css-to-bin"), "Convert CSS files to binary.")
-    val verbose = SettingKey[Boolean](prefixed("verbose"), "Enable verbose output from packager.")
+    val verbose = SettingKey[Boolean](prefixed("verbose"), "Sets verbose flag in fx:deploy task (output currently swallowed by sbt).")
 
     val packageJavaFx = TaskKey[Unit]("package-javafx", "Packages a JavaFX application.")
 
@@ -184,6 +185,8 @@ object JavaFXPlugin extends Plugin {
 
       copy(srcToDest)
 
+      val appVersion = jfx.info.appVersion
+
       //	Generate the Ant buildfile
 
       val antBuildXml =
@@ -200,7 +203,7 @@ object JavaFXPlugin extends Plugin {
                 </fx:csstobin>
               }
             }
-            <fx:application id={ name } name={ name } mainClass={ jfx.mainClass getOrElse sys.error("JFX.mainClass not defined") }/>
+            <fx:application id={ name } name={ name } version={ appVersion } mainClass={ jfx.mainClass getOrElse sys.error("JFX.mainClass not defined") }/>
             <fx:jar destfile={ jarFile.getAbsolutePath }>
               <fx:application refid={ name }/>
               <fx:fileset dir={ classDir.getAbsolutePath }/>
@@ -288,11 +291,12 @@ object JavaFXPlugin extends Plugin {
     JFX.permissions <<= (JFX.elevated, JFX.cacheCertificates) apply { Permissions(_, _) },
     JFX.vendor := "Unknown",
     JFX.title <<= name,
+    JFX.appVersion <<= version,
     JFX.category := "",
     JFX.description := "",
     JFX.copyright := "",
     JFX.license := "",
-    JFX.info <<= (JFX.vendor, JFX.title, JFX.category, JFX.description, JFX.copyright, JFX.license) apply Info.apply,
+    JFX.info <<= (JFX.vendor, JFX.title, JFX.appVersion, JFX.category, JFX.description, JFX.copyright, JFX.license) apply Info.apply,
     JFX.keyStore := None,
     JFX.storePass := None,
     JFX.alias := None,
