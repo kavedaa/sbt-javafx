@@ -2,10 +2,12 @@
 
 ### Application info
 
-The following keys allow specification of additional metadata for the installer and application manifest. Details are provided in the [fx:info JavaFX Ant Task Reference](http://docs.oracle.com/javafx/2/deployment/javafx_ant_task_reference.htm#CIAIEJHG).
+The following keys allow specification of additional metadata for the installer and application manifest. Details are provided in the [fx:info JavaFX Ant Task Reference](http://docs.oracle.com/javafx/2/deployment/javafx_ant_task_reference.htm#CIAIEJHG). Note: the default value for `JFX.appVersion` is `sbt.Keys.version`.
 
 ```scala
 JFX.vendor := "ACME Inc."
+
+JFX.appVersion := "1.0-rc1"
 
 JFX.title := "Rocket Launcher"
 
