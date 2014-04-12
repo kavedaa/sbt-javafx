@@ -164,8 +164,6 @@ object JavaFXPlugin extends Plugin {
 
       val pkgResourcesDir = jfx.paths.pkgResourcesDir
 
-      assertDirectory(file(pkgResourcesDir))
-
       val libDir = crossTarget / "lib"
       val distDir = crossTarget / jfx.output.artifactBaseNameValue
 
