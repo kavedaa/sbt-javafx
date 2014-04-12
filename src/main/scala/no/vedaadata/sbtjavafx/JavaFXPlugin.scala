@@ -55,7 +55,6 @@ case class Info(vendor: String, title: String, appVersion: String, category: Str
 
 case class Platform(javafx: Option[String], j2se: Option[String], jvmargs: Seq[String], jvmuserargs: Seq[(String, String)], properties: Seq[(String, String)])
 
-
 //	The plugin
 
 object JavaFXPlugin extends Plugin {
@@ -100,7 +99,7 @@ object JavaFXPlugin extends Plugin {
 
     val vendor = SettingKey[String](prefixed("vendor"), "Application vendor")
     val title = SettingKey[String](prefixed("title"), "Application title")
-    val appVersion = SettingKey[String](prefixed("app-version"), "Application version specifier used in launcher and installer")    
+    val appVersion = SettingKey[String](prefixed("app-version"), "Application version specifier used in launcher and installer")
     val category = SettingKey[String](prefixed("category"), "Application category")
     val description = SettingKey[String](prefixed("description"), "Application description")
     val copyright = SettingKey[String](prefixed("copyright"), "Application copyright")
@@ -196,7 +195,7 @@ object JavaFXPlugin extends Plugin {
       copy(srcToDest)
 
       val appVersion = jfx.info.appVersion
-      
+
       //	Generate the Ant buildfile
 
       val antBuildXml =
@@ -215,6 +214,23 @@ object JavaFXPlugin extends Plugin {
             }
             <fx:application id={ name } name={ name } version={ appVersion } mainClass={ jfx.mainClass getOrElse sys.error("JFX.mainClass not defined") }/>
             <fx:platform id="platform" javafx={ jfx.platform.javafx getOrElse "" } j2se={ jfx.platform.j2se getOrElse "" }>
+              {
+                jfx.platform.jvmargs map { value =>
+                  <fx:jvmarg value={ value }/>
+                }
+              }
+              {
+                jfx.platform.jvmuserargs map {
+                  case (name, value) =>
+                    <fx:jvmuserarg name={ name } value={ value }/>
+                }
+              }
+              {
+                jfx.platform.properties map {
+                  case (name, value) =>
+                    <fx:property name={ name } value={ value }/>
+                }
+              }
             </fx:platform>
             <fx:jar destfile={ jarFile.getAbsolutePath }>
               <fx:application refid={ name }/>
@@ -326,7 +342,6 @@ object JavaFXPlugin extends Plugin {
     JFX.jvmuserargs := Nil,
     JFX.properties := Nil,
     JFX.platform <<= (JFX.javafx, JFX.j2se, JFX.jvmargs, JFX.jvmuserargs, JFX.properties) apply Platform.apply)
-   
 
   //	Settings that must be manually loaded
 
