@@ -138,6 +138,9 @@ object JavaFXPlugin extends Plugin {
     val jvmuserargs = SettingKey[Seq[(String, String)]](prefixed("jvmuserargs"), "User overridable JVM options.")
     val properties = SettingKey[Seq[(String, String)]](prefixed("properties"), "Required JVM properties.")
 
+    val preparePackageJavaFx = TaskKey[(File, File)](prefixed("prepare-package"),
+      "Prepare the deployment resources and packaging definition for the packageJavaFx task. " +
+      "Result is a (File,File) tuple containing distribution directory, and ant build defintion file.")
     val packageJavaFx = TaskKey[Unit]("package-javafx", "Packages a JavaFX application.")
 
     //	Some convenience methods
@@ -148,135 +151,139 @@ object JavaFXPlugin extends Plugin {
 
   //	Define the packaging task
 
-  val packageJavaFxTask = (jfx, name, classDirectory in Compile, fullClasspath in Runtime, baseDirectory, crossTarget) map {
-    (jfx, name, classDir, fullClasspath, baseDirectory, crossTarget) =>
+  val preparePackageJavaFxTask = (jfx, name, classDirectory in Compile, fullClasspath in Runtime, baseDirectory, crossTarget) map {
+      (jfx, name, classDir, fullClasspath, baseDirectory, crossTarget) =>
 
       //	Check that the JavaFX Ant library is present
 
-      val antLib = jfx.paths.antLib getOrElse sys.error("Path to ant-javafx.jar not defined.")
+          val antLib = jfx.paths.antLib getOrElse sys.error("Path to ant-javafx.jar not defined.")
 
-      if (!file(antLib).exists) sys.error(antLib + " does not exist.")
+          if (!file(antLib).exists) sys.error(antLib + " does not exist.")
 
-      //	Setup paths and delete anything left over from previous build
+          //	Setup paths and delete anything left over from previous build
 
-      import IO._
+          import IO._
 
-      val pkgResourcesDir = jfx.paths.pkgResourcesDir
+          val pkgResourcesDir = jfx.paths.pkgResourcesDir
 
-      val libDir = crossTarget / "lib"
-      val distDir = crossTarget / jfx.output.artifactBaseNameValue
+          val libDir = crossTarget / "lib"
+          val distDir = crossTarget / jfx.output.artifactBaseNameValue
 
-      val jarFile = distDir / (jfx.output.artifactBaseNameValue + ".jar")
+          val jarFile = distDir / (jfx.output.artifactBaseNameValue + ".jar")
 
-      delete(libDir)
-      delete(distDir)
+          delete(libDir)
+          delete(distDir)
 
-      if (distDir.exists && distDir.list.nonEmpty)
-        sys.error("Could not delete previous build. Make sure no files are open in " + distDir)
+          if (distDir.exists && distDir.list.nonEmpty)
+              sys.error("Could not delete previous build. Make sure no files are open in " + distDir)
 
       val templateFile = jfx.template.file map { f =>
-        if (file(f).isAbsolute) file(f)
-        else (baseDirectory / f)
-      }
+                  if (file(f).isAbsolute) file(f)
+                  else (baseDirectory / f)
+          }
 
       val templateDestFile = jfx.template.destFile orElse jfx.template.file map { f =>
-        if (file(f).isAbsolute) file(f)
-        else (distDir / f)
-      }
+                  if (file(f).isAbsolute) file(f)
+                  else (distDir / f)
+          }
 
-      //	All library jars that should be packaged with the application
+          //	All library jars that should be packaged with the application
 
-      val libJars = fullClasspath map (_.data) filter ClasspathUtilities.isArchive filterNot (_.getName endsWith "jfxrt.jar")
+          val libJars = fullClasspath map (_.data) filter ClasspathUtilities.isArchive filterNot (_.getName endsWith "jfxrt.jar")
 
-      //	Copy the jars to temporary lib folder
+          //	Copy the jars to temporary lib folder
 
-      val srcToDest = libJars map (src => (src, libDir / src.getName))
+          val srcToDest = libJars map (src => (src, libDir / src.getName))
 
-      copy(srcToDest)
+          copy(srcToDest)
 
-      val appVersion = jfx.info.appVersion
+          val appVersion = jfx.info.appVersion
 
-      //	Generate the Ant buildfile
+          //	Generate the Ant buildfile
 
-      val antBuildXml =
-        <project name={ name } default="default" basedir="." xmlns:fx="javafx:com.sun.javafx.tools.ant">
-          <target name="default">
+          val antBuildXml =
+              <project name={name} default="default" basedir="." xmlns:fx="javafx:com.sun.javafx.tools.ant">
+                  <target name="default">
             <taskdef resource="com/sun/javafx/tools/ant/antlib.xml" uri="javafx:com.sun.javafx.tools.ant" classpath={ pkgResourcesDir + ":" + antLib }/>
             {
               if (jfx.misc.cssToBin) {
-                <delete>
-                  <fileset dir={ classDir.getAbsolutePath } includes="**/*.bss"/>
-                </delete>
-                <fx:csstobin outdir={ classDir.getAbsolutePath }>
-                  <fileset dir={ classDir.getAbsolutePath } includes="**/*.css"/>
-                </fx:csstobin>
+                      <delete>
+                          <fileset dir={classDir.getAbsolutePath} includes="**/*.bss"/>
+                      </delete>
+                          <fx:csstobin outdir={classDir.getAbsolutePath}>
+                              <fileset dir={classDir.getAbsolutePath} includes="**/*.css"/>
+                          </fx:csstobin>
               }
             }
             <fx:application id={ name } name={ name } version={ appVersion } mainClass={ jfx.mainClass getOrElse sys.error("JFX.mainClass not defined") }/>
-            <fx:platform id="platform" javafx={ jfx.platform.javafx getOrElse "" } j2se={ jfx.platform.j2se getOrElse "" }>
+                      <fx:platform id="platform" javafx={jfx.platform.javafx getOrElse ""} j2se={jfx.platform.j2se getOrElse ""}>
               {
                 jfx.platform.jvmargs map { value =>
-                  <fx:jvmarg value={ value }/>
+                                  <fx:jvmarg value={value}/>
                 }
               }
               {
                 jfx.platform.jvmuserargs map {
-                  case (name, value) =>
-                    <fx:jvmuserarg name={ name } value={ value }/>
+                          case (name, value) =>
+                                  <fx:jvmuserarg name={name} value={value}/>
                 }
               }
               {
                 jfx.platform.properties map {
-                  case (name, value) =>
-                    <fx:property name={ name } value={ value }/>
+                          case (name, value) =>
+                                  <fx:property name={name} value={value}/>
                 }
               }
-            </fx:platform>
-            <fx:jar destfile={ jarFile.getAbsolutePath }>
-              <fx:application refid={ name }/>
-              <fx:platform refid="platform"/>
-              <fx:fileset dir={ classDir.getAbsolutePath }/>
-              <fx:resources>
-                { if (libJars.nonEmpty) <fx:fileset dir={ crossTarget.getAbsolutePath } includes="lib/*.jar"/> }
-              </fx:resources>
+                      </fx:platform>
+                      <fx:jar destfile={jarFile.getAbsolutePath}>
+                          <fx:application refid={name}/>
+                          <fx:platform refid="platform"/>
+                          <fx:fileset dir={classDir.getAbsolutePath}/>
+                          <fx:resources>
+                              {if (libJars.nonEmpty) <fx:fileset dir={crossTarget.getAbsolutePath} includes="lib/*.jar"/>}
+                          </fx:resources>
             </fx:jar>
             {
               if (jfx.permissions.elevated) {
                 <fx:signjar destdir={ distDir.getAbsolutePath } keyStore={ jfx.signing.keyStore map (_.getAbsolutePath) getOrElse sys.error("fx-key-store is not defined") } storePass={ jfx.signing.storePass getOrElse sys.error("fx-store-pass is not defined") } alias={ jfx.signing.alias getOrElse sys.error("fx-alias is not defined") } keyPass={ jfx.signing.keyPass getOrElse sys.error("fx-key-pass is not defined") } storeType={ jfx.signing.storeType getOrElse "jks" }>
-                  <fx:fileset dir={ distDir.getAbsolutePath }/>
-                </fx:signjar>
+                          <fx:fileset dir={distDir.getAbsolutePath}/>
+                      </fx:signjar>
               }
             }
             {
               if (jfx.permissions.elevated && libJars.nonEmpty) {
                 <fx:signjar destdir={ libDir.getAbsolutePath } keyStore={ jfx.signing.keyStore map (_.getAbsolutePath) getOrElse sys.error("fx-key-store is not defined") } storePass={ jfx.signing.storePass getOrElse sys.error("fx-store-pass is not defined") } alias={ jfx.signing.alias getOrElse sys.error("fx-alias is not defined") } keyPass={ jfx.signing.keyPass getOrElse sys.error("fx-key-pass is not defined") } storeType={ jfx.signing.storeType getOrElse "jks" }>
-                  <fx:fileset dir={ libDir.getAbsolutePath }/>
-                </fx:signjar>
+                          <fx:fileset dir={libDir.getAbsolutePath}/>
+                      </fx:signjar>
               }
             }
             <fx:deploy width={ jfx.dimensions.width.toString } height={ jfx.dimensions.height.toString } embeddedWidth={ jfx.dimensions.embeddedWidth } embeddedHeight={ jfx.dimensions.embeddedHeight } outdir={ distDir.getAbsolutePath } outfile={ jfx.output.artifactBaseNameValue } placeholderId={ jfx.template.placeholderId } nativeBundles={ jfx.output.nativeBundles } verbose={ jfx.misc.verbose.toString }>
-              <fx:platform refid="platform"/>
-              <fx:application refid={ name }/>
-              <fx:info vendor={ jfx.info.vendor } title={ jfx.info.title } category={ jfx.info.category } description={ jfx.info.description } copyright={ jfx.info.copyright } license={ jfx.info.license }></fx:info>
-              <fx:resources>
+                      <fx:platform refid="platform"/>
+                      <fx:application refid={name}/>
+                      <fx:info vendor={jfx.info.vendor} title={jfx.info.title} category={jfx.info.category} description={jfx.info.description} copyright={jfx.info.copyright} license={jfx.info.license}></fx:info>
+                      <fx:resources>
                 <fx:fileset dir={ distDir.getAbsolutePath } includes={ jfx.output.artifactBaseNameValue + ".jar" }/>
                 { if (libJars.nonEmpty) <fx:fileset dir={ crossTarget.getAbsolutePath } includes="lib/*.jar"/> }
-              </fx:resources>
+                      </fx:resources>
               <fx:permissions elevated={ jfx.permissions.elevated.toString } cacheCertificates={ jfx.permissions.cacheCertificates.toString }/>
               {
                 if (templateFile.isDefined) {
-                  val tf = templateFile.get
-                  <fx:template file={ tf.getAbsolutePath } tofile={ templateDestFile map (_.getAbsolutePath) getOrElse tf.getAbsolutePath }/>
+                          val tf = templateFile.get
+                              <fx:template file={tf.getAbsolutePath} tofile={templateDestFile map (_.getAbsolutePath) getOrElse tf.getAbsolutePath}/>
                 }
               }
-            </fx:deploy>
-          </target>
-        </project>
+                  </fx:deploy>
+                  </target>
+              </project>
 
-      val buildFile = crossTarget / "build.xml"
+          val buildFile = crossTarget / "build.xml"
 
-      write(buildFile, antBuildXml.toString)
+          write(buildFile, antBuildXml.toString)
 
+        (distDir, buildFile)
+  }
+
+  val packageJavaFxTask = JFX.preparePackageJavaFx map { case (distDir: File, buildFile: File) =>
       //	Run the buildfile
 
       val antProject = new ant.Project
@@ -353,6 +360,7 @@ object JavaFXPlugin extends Plugin {
     autoScalaLibrary <<= JFX.javaOnly(x => !x),
     crossPaths <<= JFX.javaOnly(x => !x),
     fork in run := true,
+    JFX.preparePackageJavaFx <<= preparePackageJavaFxTask,
     JFX.packageJavaFx <<= packageJavaFxTask,
     jfx <<= (JFX.paths, JFX.mainClass, JFX.output, JFX.template, JFX.dimensions, JFX.permissions, JFX.info, JFX.signing, JFX.misc, JFX.platform) apply { new JFX(_, _, _, _, _, _, _, _, _, _) })
 }
