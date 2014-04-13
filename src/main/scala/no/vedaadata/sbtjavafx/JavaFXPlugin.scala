@@ -34,8 +34,7 @@ case class JFX(
   permissions: Permissions,
   info: Info,
   signing: Signing,
-  misc: Misc,
-  platform: Platform)
+  misc: Misc)
 
 case class Paths(devKit: Option[DevKit], jfxrt: Option[String], antLib: Option[String], pkgResourcesDir: String)
 
@@ -49,7 +48,7 @@ case class Signing(keyStore: Option[File], storePass: Option[String], alias: Opt
 
 case class Dimensions(width: Int, height: Int, embeddedWidth: String, embeddedHeight: String)
 
-case class Misc(cssToBin: Boolean, verbose: Boolean)
+case class Misc(platform: Platform, cssToBin: Boolean, verbose: Boolean)
 
 case class Info(vendor: String, title: String, appVersion: String, category: String, copyright: String, description: String, license: String)
 
@@ -213,20 +212,20 @@ object JavaFXPlugin extends Plugin {
               }
             }
             <fx:application id={ name } name={ name } version={ appVersion } mainClass={ jfx.mainClass getOrElse sys.error("JFX.mainClass not defined") }/>
-            <fx:platform id="platform" javafx={ jfx.platform.javafx getOrElse "" } j2se={ jfx.platform.j2se getOrElse "" }>
+            <fx:platform id="platform" javafx={ jfx.misc.platform.javafx getOrElse "" } j2se={ jfx.misc.platform.j2se getOrElse "" }>
               {
-                jfx.platform.jvmargs map { value =>
+                jfx.misc.platform.jvmargs map { value =>
                   <fx:jvmarg value={ value }/>
                 }
               }
               {
-                jfx.platform.jvmuserargs map {
+                jfx.misc.platform.jvmuserargs map {
                   case (name, value) =>
                     <fx:jvmuserarg name={ name } value={ value }/>
                 }
               }
               {
-                jfx.platform.properties map {
+                jfx.misc.platform.properties map {
                   case (name, value) =>
                     <fx:property name={ name } value={ value }/>
                 }
@@ -333,15 +332,15 @@ object JavaFXPlugin extends Plugin {
     JFX.keyPass := None,
     JFX.storeType := None,
     JFX.signing <<= (JFX.keyStore, JFX.storePass, JFX.alias, JFX.keyPass, JFX.storeType) apply Signing.apply,
-    JFX.cssToBin := false,
-    JFX.verbose := false,
-    JFX.misc <<= (JFX.cssToBin, JFX.verbose) apply Misc.apply,
     JFX.javafx := None,
     JFX.j2se := None,
     JFX.jvmargs := Nil,
     JFX.jvmuserargs := Nil,
     JFX.properties := Nil,
-    JFX.platform <<= (JFX.javafx, JFX.j2se, JFX.jvmargs, JFX.jvmuserargs, JFX.properties) apply Platform.apply)
+    JFX.platform <<= (JFX.javafx, JFX.j2se, JFX.jvmargs, JFX.jvmuserargs, JFX.properties) apply Platform.apply,    
+    JFX.cssToBin := false,
+    JFX.verbose := false,
+    JFX.misc <<= (JFX.platform, JFX.cssToBin, JFX.verbose) apply Misc.apply)
 
   //	Settings that must be manually loaded
 
@@ -354,5 +353,5 @@ object JavaFXPlugin extends Plugin {
     crossPaths <<= JFX.javaOnly(x => !x),
     fork in run := true,
     JFX.packageJavaFx <<= packageJavaFxTask,
-    jfx <<= (JFX.paths, JFX.mainClass, JFX.output, JFX.template, JFX.dimensions, JFX.permissions, JFX.info, JFX.signing, JFX.misc, JFX.platform) apply { new JFX(_, _, _, _, _, _, _, _, _, _) })
+    jfx <<= (JFX.paths, JFX.mainClass, JFX.output, JFX.template, JFX.dimensions, JFX.permissions, JFX.info, JFX.signing, JFX.misc) apply { new JFX(_, _, _, _, _, _, _, _, _) })
 }
