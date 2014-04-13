@@ -333,7 +333,7 @@ object JavaFXPlugin extends Plugin {
     JFX.description := "",
     JFX.copyright := "",
     JFX.license := "",
-    JFX.info <<= (JFX.vendor, JFX.title, JFX.appVersion, JFX.category, JFX.description, JFX.copyright, JFX.license) apply Info.apply,
+    JFX.info <<= (JFX.vendor, JFX.title, JFX.appVersion, JFX.category, JFX.copyright, JFX.description, JFX.license) apply Info.apply,
     JFX.keyStore := None,
     JFX.storePass := None,
     JFX.alias := None,
