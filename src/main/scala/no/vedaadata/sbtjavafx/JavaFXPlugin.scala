@@ -137,6 +137,9 @@ object JavaFXPlugin extends Plugin {
     val jvmuserargs = SettingKey[Seq[(String, String)]](prefixed("jvmuserargs"), "User overridable JVM options.")
     val properties = SettingKey[Seq[(String, String)]](prefixed("properties"), "Required JVM properties.")
 
+    val preparePackageJavaFx = TaskKey[(File, File)](prefixed("prepare-package"),
+      "Prepare the deployment resources and packaging definition for the packageJavaFx task. " +
+      "Result is a (File,File) tuple containing distribution directory, and ant build defintion file.")
     val packageJavaFx = TaskKey[Unit]("package-javafx", "Packages a JavaFX application.")
 
     //	Some convenience methods
@@ -147,7 +150,7 @@ object JavaFXPlugin extends Plugin {
 
   //	Define the packaging task
 
-  val packageJavaFxTask = (jfx, name, classDirectory in Compile, fullClasspath in Runtime, baseDirectory, crossTarget) map {
+  val preparePackageJavaFxTask = (jfx, name, classDirectory in Compile, fullClasspath in Runtime, baseDirectory, crossTarget) map {
     (jfx, name, classDir, fullClasspath, baseDirectory, crossTarget) =>
 
       //	Check that the JavaFX Ant library is present
@@ -276,6 +279,10 @@ object JavaFXPlugin extends Plugin {
 
       write(buildFile, antBuildXml.toString)
 
+        (distDir, buildFile)
+  }
+
+  val packageJavaFxTask = JFX.preparePackageJavaFx map { case (distDir: File, buildFile: File) =>
       //	Run the buildfile
 
       val antProject = new ant.Project
@@ -352,6 +359,7 @@ object JavaFXPlugin extends Plugin {
     autoScalaLibrary <<= JFX.javaOnly(x => !x),
     crossPaths <<= JFX.javaOnly(x => !x),
     fork in run := true,
+    JFX.preparePackageJavaFx <<= preparePackageJavaFxTask,
     JFX.packageJavaFx <<= packageJavaFxTask,
     jfx <<= (JFX.paths, JFX.mainClass, JFX.output, JFX.template, JFX.dimensions, JFX.permissions, JFX.info, JFX.signing, JFX.misc) apply { new JFX(_, _, _, _, _, _, _, _, _) })
 }
