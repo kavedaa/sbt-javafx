@@ -1,7 +1,7 @@
 package no.vedaadata.sbtjavafx
 
 import sbt._
-import Keys._
+import sbt.Keys._
 import classpath.ClasspathUtilities
 import org.apache.tools.ant
 
@@ -147,8 +147,8 @@ object JavaFXPlugin extends Plugin {
 
   //	Define the packaging task
 
-  val packageJavaFxTask = (jfx, name, classDirectory in Compile, fullClasspath in Runtime, baseDirectory, crossTarget) map {
-    (jfx, name, classDir, fullClasspath, baseDirectory, crossTarget) =>
+  val packageJavaFxTask = (jfx, name, classDirectory in Compile, fullClasspath in Runtime, baseDirectory, crossTarget, internalDependencyClasspath in Compile) map {
+    (jfx, name, classDir, fullClasspath, baseDirectory, crossTarget, internalDependencyClasspath) =>
 
       //	Check that the JavaFX Ant library is present
 
@@ -235,6 +235,11 @@ object JavaFXPlugin extends Plugin {
               <fx:application refid={ name }/>
               <fx:platform refid="platform"/>
               <fx:fileset dir={ classDir.getAbsolutePath }/>
+              {
+                for (classpath <- internalDependencyClasspath) yield {
+                  <fx:fileset dir={classpath.data.getAbsolutePath}/>
+                }
+              }
               <fx:resources>
                 { if (libJars.nonEmpty) <fx:fileset dir={ crossTarget.getAbsolutePath } includes="lib/*.jar"/> }
               </fx:resources>
