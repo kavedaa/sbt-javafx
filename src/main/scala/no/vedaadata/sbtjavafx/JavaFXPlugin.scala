@@ -236,9 +236,10 @@ object JavaFXPlugin extends Plugin {
               <fx:platform refid="platform"/>
               <fx:fileset dir={ classDir.getAbsolutePath }/>
               {
-                for (classpath <- internalDependencyClasspath) yield {
-                  <fx:fileset dir={classpath.data.getAbsolutePath}/>
-                }
+                for (
+                  classpath <- internalDependencyClasspath
+                  if classpath.data.isDirectory
+                ) yield { <fx:fileset dir={classpath.data.getAbsolutePath}/> }
               }
               <fx:resources>
                 { if (libJars.nonEmpty) <fx:fileset dir={ crossTarget.getAbsolutePath } includes="lib/*.jar"/> }
