@@ -6,8 +6,6 @@ import Keys._
 import classpath.ClasspathUtilities
 import org.apache.tools.ant
 
-import scala.collection.mutable
-
 //	Types and utils used for jdk/sdk configuration
 
 sealed trait DevKit
@@ -190,8 +188,6 @@ object JavaFXPlugin extends Plugin {
 
       val libJars = fullClasspath map (_.data) filter ClasspathUtilities.isArchive filterNot (_.getName endsWith "jfxrt.jar")
 
-
-
       //	Copy the jars to temporary lib folder
 
       val srcToDest = libJars map (src => (src, libDir / src.getName))
@@ -200,6 +196,7 @@ object JavaFXPlugin extends Plugin {
 
       val appVersion = jfx.info.appVersion
 
+     //converting manifest attributes in packageOption, scoped to this task, to xml
       import collection.JavaConversions._
       val manifestAttributes = packOptions.collect {
         case attributes: ManifestAttributes => attributes.attributes.map{case (key, value) => (key.toString, value)}
