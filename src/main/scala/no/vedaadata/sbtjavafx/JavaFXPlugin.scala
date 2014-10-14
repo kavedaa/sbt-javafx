@@ -1,9 +1,12 @@
 package no.vedaadata.sbtjavafx
 
+import sbt.Package.{JarManifest, ManifestAttributes}
 import sbt._
 import Keys._
 import classpath.ClasspathUtilities
 import org.apache.tools.ant
+
+import scala.collection.mutable
 
 //	Types and utils used for jdk/sdk configuration
 
@@ -147,8 +150,8 @@ object JavaFXPlugin extends Plugin {
 
   //	Define the packaging task
 
-  val packageJavaFxTask = (jfx, name, classDirectory in Compile, fullClasspath in Runtime, baseDirectory, crossTarget) map {
-    (jfx, name, classDir, fullClasspath, baseDirectory, crossTarget) =>
+  val packageJavaFxTask = (jfx, name, classDirectory in Compile, fullClasspath in Runtime, baseDirectory, crossTarget, packageOptions in JFX.packageJavaFx) map {
+    (jfx, name, classDir, fullClasspath, baseDirectory, crossTarget, packOptions) =>
 
       //	Check that the JavaFX Ant library is present
 
@@ -187,6 +190,8 @@ object JavaFXPlugin extends Plugin {
 
       val libJars = fullClasspath map (_.data) filter ClasspathUtilities.isArchive filterNot (_.getName endsWith "jfxrt.jar")
 
+
+
       //	Copy the jars to temporary lib folder
 
       val srcToDest = libJars map (src => (src, libDir / src.getName))
@@ -194,6 +199,15 @@ object JavaFXPlugin extends Plugin {
       copy(srcToDest)
 
       val appVersion = jfx.info.appVersion
+
+      import collection.JavaConversions._
+      val manifestAttributes = packOptions.collect {
+        case attributes: ManifestAttributes => attributes.attributes.map{case (key, value) => (key.toString, value)}
+        case JarManifest(manifest) =>
+          manifest.getMainAttributes.entrySet().map(entry => (entry.getKey.toString, entry.getValue.toString)).toList
+      }.flatten
+
+      val manifestAttributeXmls = manifestAttributes.map{case (key, value) => <attribute name={key} value={value}/>}
 
       //	Generate the Ant buildfile
 
@@ -238,6 +252,7 @@ object JavaFXPlugin extends Plugin {
               <fx:resources>
                 { if (libJars.nonEmpty) <fx:fileset dir={ crossTarget.getAbsolutePath } includes="lib/*.jar"/> }
               </fx:resources>
+                { if (manifestAttributeXmls.nonEmpty) <manifest>{manifestAttributeXmls}</manifest> }
             </fx:jar>
             {
               if (jfx.permissions.elevated) {
