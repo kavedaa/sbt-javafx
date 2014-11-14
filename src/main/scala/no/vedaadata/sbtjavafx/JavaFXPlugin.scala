@@ -1,5 +1,6 @@
 package no.vedaadata.sbtjavafx
 
+import sbt.Package.{JarManifest, ManifestAttributes}
 import sbt._
 import Keys._
 import classpath.ClasspathUtilities
@@ -147,8 +148,8 @@ object JavaFXPlugin extends Plugin {
 
   //	Define the packaging task
 
-  val packageJavaFxTask = (jfx, name, classDirectory in Compile, fullClasspath in Runtime, baseDirectory, crossTarget) map {
-    (jfx, name, classDir, fullClasspath, baseDirectory, crossTarget) =>
+  val packageJavaFxTask = (jfx, name, classDirectory in Compile, fullClasspath in Runtime, baseDirectory, crossTarget, packageOptions in JFX.packageJavaFx) map {
+    (jfx, name, classDir, fullClasspath, baseDirectory, crossTarget, packOptions) =>
 
       //	Check that the JavaFX Ant library is present
 
@@ -195,6 +196,16 @@ object JavaFXPlugin extends Plugin {
 
       val appVersion = jfx.info.appVersion
 
+     //converting manifest attributes in packageOption, scoped to this task, to xml
+      import collection.JavaConversions._
+      val manifestAttributes = packOptions.collect {
+        case attributes: ManifestAttributes => attributes.attributes.map{case (key, value) => (key.toString, value)}
+        case JarManifest(manifest) =>
+          manifest.getMainAttributes.entrySet().map(entry => (entry.getKey.toString, entry.getValue.toString)).toList
+      }.flatten
+
+      val manifestAttributeXmls = manifestAttributes.map{case (key, value) => <attribute name={key} value={value}/>}
+
       //	Generate the Ant buildfile
 
       val antBuildXml =
@@ -236,8 +247,9 @@ object JavaFXPlugin extends Plugin {
               <fx:platform refid="platform"/>
               <fx:fileset dir={ classDir.getAbsolutePath }/>
               <fx:resources>
-                { if (libJars.nonEmpty) <fx:fileset dir={ crossTarget.getAbsolutePath } includes="lib/*.jar"/> }
+                { if (libJars.nonEmpty) <fx:fileset dir={ (crossTarget / "lib").getAbsolutePath } includes="*.jar"/> }
               </fx:resources>
+                { if (manifestAttributeXmls.nonEmpty) <manifest>{manifestAttributeXmls}</manifest> }
             </fx:jar>
             {
               if (jfx.permissions.elevated) {
