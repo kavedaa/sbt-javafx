@@ -1,8 +1,8 @@
-name := "sbt-javafx"
+name := "sbt-javafx-modified"
 
 organization := "no.vedaadata"
 
-version := "0.6.2-SNAPSHOT"
+version := "0.6.2"
 
 scalaVersion := "2.10.2"
 
@@ -16,13 +16,15 @@ libraryDependencies += "org.apache.ant" % "ant" % "1.8.2"
 
 publishMavenStyle := true
 
-publishTo <<= version { (v: String) =>
-  val nexus = "https://oss.sonatype.org/"
-  if (v.trim.endsWith("SNAPSHOT"))
-    Some("snapshots" at nexus + "content/repositories/snapshots")
+publishTo := {
+  val artifactory = "http://bill.part.net:8081/artifactory/"
+  if (version.value.trim.endsWith("SNAPSHOT"))
+    Some("snapshots" at artifactory + "libs-snapshot-local-nonunique")
   else
-    Some("releases"  at nexus + "service/local/staging/deploy/maven2")
+    Some("releases"  at artifactory + "libs-release-local")
 }
+
+credentials += Credentials(Path.userHome / ".sbt" / "credentials")
 
 publishArtifact in Test := false
 

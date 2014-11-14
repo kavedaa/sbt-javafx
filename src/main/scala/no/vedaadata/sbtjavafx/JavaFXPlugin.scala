@@ -247,7 +247,7 @@ object JavaFXPlugin extends Plugin {
               <fx:platform refid="platform"/>
               <fx:fileset dir={ classDir.getAbsolutePath }/>
               <fx:resources>
-                { if (libJars.nonEmpty) <fx:fileset dir={ crossTarget.getAbsolutePath } includes="lib/*.jar"/> }
+                { if (libJars.nonEmpty) <fx:fileset dir={ (crossTarget / "lib").getAbsolutePath } includes="*.jar"/> }
               </fx:resources>
                 { if (manifestAttributeXmls.nonEmpty) <manifest>{manifestAttributeXmls}</manifest> }
             </fx:jar>
