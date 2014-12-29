@@ -1,9 +1,11 @@
 package no.vedaadata.sbtjavafx
 
 import sbt._
-import Keys._
+import sbt.Keys._
 import classpath.ClasspathUtilities
 import org.apache.tools.ant
+import scala.xml.Elem
+import sbt.Package.{ JarManifest, ManifestAttributes }
 
 //	Types and utils used for jdk/sdk configuration
 
@@ -139,6 +141,8 @@ object JavaFXPlugin extends Plugin {
 
     val packageJavaFx = TaskKey[Unit]("package-javafx", "Packages a JavaFX application.")
 
+    val customizeXml = SettingKey[Elem => Elem](prefixed("customize-xml"), "description")
+
     //	Some convenience methods
 
     def jdk(s: String) = Some(JDK(s))
@@ -147,8 +151,8 @@ object JavaFXPlugin extends Plugin {
 
   //	Define the packaging task
 
-  val packageJavaFxTask = (jfx, name, classDirectory in Compile, fullClasspath in Runtime, baseDirectory, crossTarget) map {
-    (jfx, name, classDir, fullClasspath, baseDirectory, crossTarget) =>
+  val packageJavaFxTask = (jfx, name, classDirectory in Compile, fullClasspath in Runtime, baseDirectory, crossTarget, packageOptions in JFX.packageJavaFx) map {
+    (jfx, name, classDir, fullClasspath, baseDirectory, crossTarget, packOptions) =>
 
       //	Check that the JavaFX Ant library is present
 
@@ -195,6 +199,17 @@ object JavaFXPlugin extends Plugin {
 
       val appVersion = jfx.info.appVersion
 
+      // Convert manifest attributes in packageOption, scoped to this task, to xml
+
+      import collection.JavaConversions._
+      val manifestAttributes = packOptions.collect {
+        case attributes: ManifestAttributes => attributes.attributes.map { case (key, value) => (key.toString, value) }
+        case JarManifest(manifest) =>
+          (manifest.getMainAttributes.entrySet map (entry => (entry.getKey.toString, entry.getValue.toString))).toList
+      }.flatten
+
+      val manifestAttributeXmls = manifestAttributes map { case (key, value) => <attribute name={ key } value={ value }/> }
+
       //	Generate the Ant buildfile
 
       val antBuildXml =
@@ -238,6 +253,7 @@ object JavaFXPlugin extends Plugin {
               <fx:resources>
                 { if (libJars.nonEmpty) <fx:fileset dir={ crossTarget.getAbsolutePath } includes="lib/*.jar"/> }
               </fx:resources>
+              { if (manifestAttributeXmls.nonEmpty) <manifest>{ manifestAttributeXmls }</manifest> }
             </fx:jar>
             {
               if (jfx.permissions.elevated) {
@@ -337,10 +353,11 @@ object JavaFXPlugin extends Plugin {
     JFX.jvmargs := Nil,
     JFX.jvmuserargs := Nil,
     JFX.properties := Nil,
-    JFX.platform <<= (JFX.javafx, JFX.j2se, JFX.jvmargs, JFX.jvmuserargs, JFX.properties) apply Platform.apply,    
+    JFX.platform <<= (JFX.javafx, JFX.j2se, JFX.jvmargs, JFX.jvmuserargs, JFX.properties) apply Platform.apply,
     JFX.cssToBin := false,
     JFX.verbose := false,
-    JFX.misc <<= (JFX.platform, JFX.cssToBin, JFX.verbose) apply Misc.apply)
+    JFX.misc <<= (JFX.platform, JFX.cssToBin, JFX.verbose) apply Misc.apply,
+    JFX.customizeXml := identity)
 
   //	Settings that must be manually loaded
 

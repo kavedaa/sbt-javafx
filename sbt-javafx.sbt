@@ -4,8 +4,6 @@ organization := "no.vedaadata"
 
 version := "0.6.2-SNAPSHOT"
 
-scalaVersion := "2.10.2"
-
 sbtPlugin := true
 
 crossBuildingSettings
