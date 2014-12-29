@@ -50,11 +50,12 @@ case class Signing(keyStore: Option[File], storePass: Option[String], alias: Opt
 
 case class Dimensions(width: Int, height: Int, embeddedWidth: String, embeddedHeight: String)
 
-case class Misc(platform: Platform, cssToBin: Boolean, verbose: Boolean)
-
 case class Info(vendor: String, title: String, appVersion: String, category: String, copyright: String, description: String, license: String)
 
 case class Platform(javafx: Option[String], j2se: Option[String], jvmargs: Seq[String], jvmuserargs: Seq[(String, String)], properties: Seq[(String, String)])
+
+case class Misc(platform: Platform, cssToBin: Boolean, verbose: Boolean, transformXml: Elem => Elem)
+
 
 //	The plugin
 
@@ -141,7 +142,7 @@ object JavaFXPlugin extends Plugin {
 
     val packageJavaFx = TaskKey[Unit]("package-javafx", "Packages a JavaFX application.")
 
-    val customizeXml = SettingKey[Elem => Elem](prefixed("customize-xml"), "description")
+    val transformXml = SettingKey[Elem => Elem](prefixed("transform-xml"), "Optionally transform the intermediate build XML before packaging (advanced).")
 
     //	Some convenience methods
 
@@ -290,7 +291,9 @@ object JavaFXPlugin extends Plugin {
 
       val buildFile = crossTarget / "build.xml"
 
-      write(buildFile, antBuildXml.toString)
+      //  Optionally transform the build XML, then write it to file
+      
+      write(buildFile, jfx.misc.transformXml(antBuildXml).toString)
 
       //	Run the buildfile
 
@@ -356,8 +359,8 @@ object JavaFXPlugin extends Plugin {
     JFX.platform <<= (JFX.javafx, JFX.j2se, JFX.jvmargs, JFX.jvmuserargs, JFX.properties) apply Platform.apply,
     JFX.cssToBin := false,
     JFX.verbose := false,
-    JFX.misc <<= (JFX.platform, JFX.cssToBin, JFX.verbose) apply Misc.apply,
-    JFX.customizeXml := identity)
+    JFX.transformXml := identity,
+    JFX.misc <<= (JFX.platform, JFX.cssToBin, JFX.verbose, JFX.transformXml) apply Misc.apply)
 
   //	Settings that must be manually loaded
 
