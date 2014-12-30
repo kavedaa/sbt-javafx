@@ -57,3 +57,11 @@ JFX.properties += "purpose" -> "sample value"
 ```scala
 JFX.cssToBin := true
 ```
+
+### Add custom JAR manifest entries
+
+Add custom manifest entries to the jar created by the plugin, for example:
+
+```scala
+packageOptions in JFX.packageJavaFx += sbt.Package.ManifestAttributes(java.util.jar.Attributes.Name.IMPLEMENTATION_VENDOR -> "Acme Inc.")
+```
