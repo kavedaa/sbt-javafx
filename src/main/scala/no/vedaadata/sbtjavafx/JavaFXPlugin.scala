@@ -54,7 +54,7 @@ case class Info(vendor: String, title: String, appVersion: String, category: Str
 
 case class Platform(javafx: Option[String], j2se: Option[String], jvmargs: Seq[String], jvmuserargs: Seq[(String, String)], properties: Seq[(String, String)])
 
-case class Misc(platform: Platform, cssToBin: Boolean, verbose: Boolean, transformXml: Elem => Elem)
+case class Misc(platform: Platform, cssToBin: Boolean, verbose: Boolean, transformXml: Elem => Elem, postProcess: File => Unit)
 
 
 //	The plugin
@@ -140,9 +140,13 @@ object JavaFXPlugin extends Plugin {
     val jvmuserargs = SettingKey[Seq[(String, String)]](prefixed("jvmuserargs"), "User overridable JVM options.")
     val properties = SettingKey[Seq[(String, String)]](prefixed("properties"), "Required JVM properties.")
 
+    val transformXml = SettingKey[Elem => Elem](prefixed("transform-xml"), "Optionally transformation of the intermediate build XML before packaging (advanced).")
+    val postProcess = SettingKey[File => Unit](prefixed("post-process"), "Optionally post-processing of the packaged artifact.")
+    
+    val prepareBuild = TaskKey[Unit](prefixed("prepare-build"), "Prepares JavaFX packaging without running the Ant build file.")
+    val runBuild = TaskKey[Unit](prefixed("run-build"), "Completes JavaFX packaging by running an already prepared Ant build file.")
     val packageJavaFx = TaskKey[Unit]("package-javafx", "Packages a JavaFX application.")
 
-    val transformXml = SettingKey[Elem => Elem](prefixed("transform-xml"), "Optionally transform the intermediate build XML before packaging (advanced).")
 
     //	Some convenience methods
 
@@ -150,9 +154,9 @@ object JavaFXPlugin extends Plugin {
     def sdk(s: String) = Some(SDK(s))
   }
 
-  //	Define the packaging task
+  //	Define the tasks
 
-  val packageJavaFxTask = (jfx, name, classDirectory in Compile, fullClasspath in Runtime, baseDirectory, crossTarget, packageOptions in JFX.packageJavaFx) map {
+  val prepareBuildTask = (jfx, name, classDirectory in Compile, fullClasspath in Runtime, baseDirectory, crossTarget, packageOptions in JFX.packageJavaFx) map {
     (jfx, name, classDir, fullClasspath, baseDirectory, crossTarget, packOptions) =>
 
       //	Check that the JavaFX Ant library is present
@@ -294,6 +298,12 @@ object JavaFXPlugin extends Plugin {
       //  Optionally transform the build XML, then write it to file
       
       write(buildFile, jfx.misc.transformXml(antBuildXml).toString)
+  }
+  
+  val runBuildTask = (jfx, crossTarget) map { (jfx, crossTarget) =>
+    
+      val buildFile = crossTarget / "build.xml"
+      val distDir = crossTarget / jfx.output.artifactBaseNameValue
 
       //	Run the buildfile
 
@@ -308,8 +318,12 @@ object JavaFXPlugin extends Plugin {
       println("Packaging to " + distDir + "...")
 
       antProject executeTarget "default"
+      
+      jfx.misc.postProcess(distDir)
   }
 
+  val packageJavaFxTask = (JFX.prepareBuild, JFX.runBuild) { (prepare, run) => prepare doFinally run }
+  
   //	Settings that are automatically loaded (as defaults)
 
   override val settings = Seq(
@@ -360,7 +374,8 @@ object JavaFXPlugin extends Plugin {
     JFX.cssToBin := false,
     JFX.verbose := false,
     JFX.transformXml := identity,
-    JFX.misc <<= (JFX.platform, JFX.cssToBin, JFX.verbose, JFX.transformXml) apply Misc.apply)
+    JFX.postProcess := { _ => },
+    JFX.misc <<= (JFX.platform, JFX.cssToBin, JFX.verbose, JFX.transformXml, JFX.postProcess) apply Misc.apply)
 
   //	Settings that must be manually loaded
 
@@ -372,6 +387,8 @@ object JavaFXPlugin extends Plugin {
     autoScalaLibrary <<= JFX.javaOnly(x => !x),
     crossPaths <<= JFX.javaOnly(x => !x),
     fork in run := true,
+    JFX.prepareBuild <<= prepareBuildTask,
+    JFX.runBuild <<= runBuildTask,
     JFX.packageJavaFx <<= packageJavaFxTask,
     jfx <<= (JFX.paths, JFX.mainClass, JFX.output, JFX.template, JFX.dimensions, JFX.permissions, JFX.info, JFX.signing, JFX.misc) apply { new JFX(_, _, _, _, _, _, _, _, _) })
 }
