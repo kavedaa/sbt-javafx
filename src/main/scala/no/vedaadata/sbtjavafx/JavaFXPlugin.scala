@@ -136,9 +136,9 @@ object JavaFXPlugin extends Plugin {
 
     val javafx = SettingKey[Option[String]](prefixed("javafx"), "Required JavaFX version.")
     val j2se = SettingKey[Option[String]](prefixed("j2se"), "Required JRE version.")
-    val jvmargs = SettingKey[Seq[String]](prefixed("jvmargs"), "Required JVM options.")
+    val jvmargs = SettingKey[Seq[String]](prefixed("jvmargs"), "JVM options.")
     val jvmuserargs = SettingKey[Seq[(String, String)]](prefixed("jvmuserargs"), "User overridable JVM options.")
-    val properties = SettingKey[Seq[(String, String)]](prefixed("properties"), "Required JVM properties.")
+    val properties = SettingKey[Seq[(String, String)]](prefixed("properties"), "JVM properties.")
 
     val transformXml = SettingKey[Elem => Elem](prefixed("transform-xml"), "Optionally transformation of the intermediate build XML before packaging (advanced).")
     val postProcess = SettingKey[File => Unit](prefixed("post-process"), "Optionally post-processing of the packaged artifact.")
