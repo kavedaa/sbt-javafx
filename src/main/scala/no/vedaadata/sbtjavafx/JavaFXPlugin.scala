@@ -171,10 +171,11 @@ object JavaFXPlugin extends Plugin {
 
       val pkgResourcesDir = jfx.paths.pkgResourcesDir
 
-      val libDir = crossTarget / "lib"
+      val jarDir = crossTarget 
+      val libDir = crossTarget / "lib"      
       val distDir = crossTarget / jfx.output.artifactBaseNameValue
 
-      val jarFile = distDir / (jfx.output.artifactBaseNameValue + ".jar")
+      val jarFile = jarDir / (jfx.output.artifactBaseNameValue + ".jar")
 
       delete(libDir)
       delete(distDir)
@@ -279,7 +280,7 @@ object JavaFXPlugin extends Plugin {
               <fx:application refid={ name }/>
               <fx:info vendor={ jfx.info.vendor } title={ jfx.info.title } category={ jfx.info.category } description={ jfx.info.description } copyright={ jfx.info.copyright } license={ jfx.info.license }></fx:info>
               <fx:resources>
-                <fx:fileset dir={ distDir.getAbsolutePath } includes={ jfx.output.artifactBaseNameValue + ".jar" }/>
+                <fx:fileset dir={ jarDir.getAbsolutePath } includes={ jfx.output.artifactBaseNameValue + ".jar" }/>
                 { if (libJars.nonEmpty) <fx:fileset dir={ crossTarget.getAbsolutePath } includes="lib/*.jar"/> }
               </fx:resources>
               <fx:permissions elevated={ jfx.permissions.elevated.toString } cacheCertificates={ jfx.permissions.cacheCertificates.toString }/>
