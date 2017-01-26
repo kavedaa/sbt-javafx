@@ -6,9 +6,9 @@ version := "0.7.1-SNAPSHOT"
 
 sbtPlugin := true
 
-crossBuildingSettings
+// crossBuildingSettings
 
-CrossBuilding.crossSbtVersions := Seq("0.11.2", "0.11.3", "0.12", "0.13")
+// CrossBuilding.crossSbtVersions := Seq("0.11.2", "0.11.3", "0.12", "0.13")
 
 libraryDependencies += "org.apache.ant" % "ant" % "1.8.2"
 
