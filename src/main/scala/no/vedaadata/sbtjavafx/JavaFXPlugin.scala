@@ -235,7 +235,7 @@ object JavaFXPlugin extends Plugin {
                 </fx:csstobin>
               }
             }
-            <fx:application id={ name } name={ name } version={ appVersion } mainClass={ jfx.mainClass getOrElse sys.error("JFX.mainClass not defined") }/>
+            <fx:application id={ name } name={ jfx.info.title } version={ appVersion } mainClass={ jfx.mainClass getOrElse sys.error("JFX.mainClass not defined") }/>
             <fx:platform id="platform" javafx={ jfx.misc.platform.javafx getOrElse "" } j2se={ jfx.misc.platform.j2se getOrElse "" }>
               {
                 jfx.misc.platform.jvmargs map { value =>
@@ -282,7 +282,11 @@ object JavaFXPlugin extends Plugin {
               <fx:platform refid="platform"/>
               <fx:application refid={ name }/>
               <fx:info vendor={ jfx.info.vendor } title={ jfx.info.title } category={ jfx.info.category } description={ jfx.info.description } copyright={ jfx.info.copyright } license={ jfx.info.license }>
-                {jfx.fileAssociation.map(association => <fx:association extension={ association.extension } mimetype={ association.mimetype } description={ association.description } />)}
+                {jfx.fileAssociation.map(association =>
+
+                  <fx:association extension={ association.extension } mimetype={ association.mimetype } description={ association.description } />
+
+                )}
               </fx:info>
               <fx:resources>
                 <fx:fileset dir={ jarDir.getAbsolutePath } includes={ jfx.output.artifactBaseNameValue + ".jar" }/>
