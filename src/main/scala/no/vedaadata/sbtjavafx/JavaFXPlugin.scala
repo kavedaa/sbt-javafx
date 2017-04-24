@@ -36,7 +36,9 @@ case class JFX(
   permissions: Permissions,
   info: Info,
   signing: Signing,
-  misc: Misc)
+  misc: Misc,
+  fileAssociation: Seq[FileAssociation]
+              )
 
 case class Paths(devKit: Option[DevKit], jfxrt: Option[String], antLib: Option[String], pkgResourcesDir: String)
 
@@ -56,6 +58,7 @@ case class Platform(javafx: Option[String], j2se: Option[String], jvmargs: Seq[S
 
 case class Misc(platform: Platform, cssToBin: Boolean, verbose: Boolean, transformXml: Elem => Elem, postProcess: File => Unit)
 
+case class FileAssociation(extension : String, mimetype: String, description: String )
 
 //	The plugin
 
@@ -98,6 +101,7 @@ object JavaFXPlugin extends Plugin {
     val placeholderId = SettingKey[String](prefixed("placeholder-id"), "HTML template placeholder id.")
 
     val info = SettingKey[Info](prefixed("info"), "Application info settings")
+    val fileAssociations = SettingKey[Seq[FileAssociation]](prefixed("fileAssociation"), "Seq of fileAssociations")
 
     val vendor = SettingKey[String](prefixed("vendor"), "Application vendor")
     val title = SettingKey[String](prefixed("title"), "Application title")
@@ -142,7 +146,7 @@ object JavaFXPlugin extends Plugin {
 
     val transformXml = SettingKey[Elem => Elem](prefixed("transform-xml"), "Optionally transformation of the intermediate build XML before packaging (advanced).")
     val postProcess = SettingKey[File => Unit](prefixed("post-process"), "Optionally post-processing of the packaged artifact.")
-    
+
     val prepareBuild = TaskKey[Unit](prefixed("prepare-build"), "Prepares JavaFX packaging without running the Ant build file.")
     val runBuild = TaskKey[Unit](prefixed("run-build"), "Completes JavaFX packaging by running an already prepared Ant build file.")
     val packageJavaFx = TaskKey[Unit]("package-javafx", "Packages a JavaFX application.")
@@ -171,8 +175,8 @@ object JavaFXPlugin extends Plugin {
 
       val pkgResourcesDir = jfx.paths.pkgResourcesDir
 
-      val jarDir = crossTarget 
-      val libDir = crossTarget / "lib"      
+      val jarDir = crossTarget
+      val libDir = crossTarget / "lib"
       val distDir = crossTarget / jfx.output.artifactBaseNameValue
 
       val jarFile = jarDir / (jfx.output.artifactBaseNameValue + ".jar")
@@ -217,7 +221,6 @@ object JavaFXPlugin extends Plugin {
       val manifestAttributeXmls = manifestAttributes map { case (key, value) => <attribute name={ key } value={ value }/> }
 
       //	Generate the Ant buildfile
-
       val antBuildXml =
         <project name={ name } default="default" basedir="." xmlns:fx="javafx:com.sun.javafx.tools.ant">
           <target name="default">
@@ -232,7 +235,7 @@ object JavaFXPlugin extends Plugin {
                 </fx:csstobin>
               }
             }
-            <fx:application id={ name } name={ name } version={ appVersion } mainClass={ jfx.mainClass getOrElse sys.error("JFX.mainClass not defined") }/>
+            <fx:application id={ name } name={ jfx.info.title } version={ appVersion } mainClass={ jfx.mainClass getOrElse sys.error("JFX.mainClass not defined") }/>
             <fx:platform id="platform" javafx={ jfx.misc.platform.javafx getOrElse "" } j2se={ jfx.misc.platform.j2se getOrElse "" }>
               {
                 jfx.misc.platform.jvmargs map { value =>
@@ -278,7 +281,13 @@ object JavaFXPlugin extends Plugin {
             <fx:deploy width={ jfx.dimensions.width.toString } height={ jfx.dimensions.height.toString } embeddedWidth={ jfx.dimensions.embeddedWidth } embeddedHeight={ jfx.dimensions.embeddedHeight } outdir={ distDir.getAbsolutePath } outfile={ jfx.output.artifactBaseNameValue } placeholderId={ jfx.template.placeholderId } nativeBundles={ jfx.output.nativeBundles } verbose={ jfx.misc.verbose.toString }>
               <fx:platform refid="platform"/>
               <fx:application refid={ name }/>
-              <fx:info vendor={ jfx.info.vendor } title={ jfx.info.title } category={ jfx.info.category } description={ jfx.info.description } copyright={ jfx.info.copyright } license={ jfx.info.license }></fx:info>
+              <fx:info vendor={ jfx.info.vendor } title={ jfx.info.title } category={ jfx.info.category } description={ jfx.info.description } copyright={ jfx.info.copyright } license={ jfx.info.license }>
+                {jfx.fileAssociation.map(association =>
+
+                  <fx:association extension={ association.extension } mimetype={ association.mimetype } description={ association.description } />
+
+                )}
+              </fx:info>
               <fx:resources>
                 <fx:fileset dir={ jarDir.getAbsolutePath } includes={ jfx.output.artifactBaseNameValue + ".jar" }/>
                 { if (libJars.nonEmpty) <fx:fileset dir={ crossTarget.getAbsolutePath } includes="lib/*.jar"/> }
@@ -297,12 +306,12 @@ object JavaFXPlugin extends Plugin {
       val buildFile = crossTarget / "build.xml"
 
       //  Optionally transform the build XML, then write it to file
-      
+
       write(buildFile, jfx.misc.transformXml(antBuildXml).toString)
   }
-  
+
   val runBuildTask = (jfx, crossTarget) map { (jfx, crossTarget) =>
-    
+
       val buildFile = crossTarget / "build.xml"
       val distDir = crossTarget / jfx.output.artifactBaseNameValue
 
@@ -319,12 +328,12 @@ object JavaFXPlugin extends Plugin {
       println("Packaging to " + distDir + "...")
 
       antProject executeTarget "default"
-      
+
       jfx.misc.postProcess(distDir)
   }
 
   val packageJavaFxTask = (JFX.prepareBuild, JFX.runBuild) { (prepare, run) => prepare doFinally run }
-  
+
   //	Settings that are automatically loaded (as defaults)
 
   override val settings = Seq(
@@ -374,6 +383,7 @@ object JavaFXPlugin extends Plugin {
     JFX.platform <<= (JFX.javafx, JFX.j2se, JFX.jvmargs, JFX.jvmuserargs, JFX.properties) apply Platform.apply,
     JFX.cssToBin := false,
     JFX.verbose := false,
+    JFX.fileAssociations := Seq[FileAssociation](),
     JFX.transformXml := identity,
     JFX.postProcess := { _ => },
     JFX.misc <<= (JFX.platform, JFX.cssToBin, JFX.verbose, JFX.transformXml, JFX.postProcess) apply Misc.apply)
@@ -391,5 +401,5 @@ object JavaFXPlugin extends Plugin {
     JFX.prepareBuild <<= prepareBuildTask,
     JFX.runBuild <<= runBuildTask,
     JFX.packageJavaFx <<= packageJavaFxTask,
-    jfx <<= (JFX.paths, JFX.mainClass, JFX.output, JFX.template, JFX.dimensions, JFX.permissions, JFX.info, JFX.signing, JFX.misc) apply { new JFX(_, _, _, _, _, _, _, _, _) })
+    jfx <<= (JFX.paths, JFX.mainClass, JFX.output, JFX.template, JFX.dimensions, JFX.permissions, JFX.info, JFX.signing, JFX.misc, JFX.fileAssociations) apply { new JFX(_, _, _, _, _, _, _, _, _, _) })
 }

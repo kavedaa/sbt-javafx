@@ -65,3 +65,13 @@ Add custom manifest entries to the jar created by the plugin, for example:
 ```scala
 packageOptions in JFX.packageJavaFx += sbt.Package.ManifestAttributes(java.util.jar.Attributes.Name.IMPLEMENTATION_VENDOR -> "Acme Inc.")
 ```
+
+### Add File Association
+
+```scala
+import no.vedaadata.sbtjavafx.FileAssociation
+
+JFX.fileAssociations ++= Seq(FileAssociation("js", "text/javascript", "JavaScript Source"))
+
+JFX.fileAssociations += FileAssociation("groovy", "", "")
+```
